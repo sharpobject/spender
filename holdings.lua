@@ -1,0 +1,21 @@
+-- WBRGU
+return {
+  ["1021"] = {"RGUWB", "BRGUW"},
+  ["103"] = {"UGWRB"},
+  ["101111"] = {"BRGUW", "RGUWB", "GUWBR", "UWBRG"},
+  ["1022"] = {"BWRUG", "UGWRB"},
+  ["102111"] = {"GUWBR", "BRGUW", "RGUWB", "UWBRG"},
+  ["10221"] = {"GUWBR", "UWBRG", "BRGUW"},
+  ["10311"] = {"WRBUG", "UBWGR", "BGRWU"},
+  ["114"] = {"GUWBR"},
+  ["21322"] = {"GWBUR", "RUWBG", "BGRWU"},
+  ["21332"] = {"RGUWB", "UWBRG", "WBRGU"},
+  ["22421"] = {"RGUWB", "BRGUW", "GUWBR"},
+  ["2253"] = {"RGBUW", "BRWGU"},
+  ["225"] = {"RWBGU"},
+  ["236"] = {"WBRGU"},
+  ["335333"] = {"RGUWB", "BRGUW", "GUWBR", "UWBRG"},
+  ["347"] = {"BRGUW"},
+  ["34633"] = {"BRGUW", "WBRGU", "RGUWB"},
+  ["3573"] = {"BRGUW", "WBRGU"},
+}
