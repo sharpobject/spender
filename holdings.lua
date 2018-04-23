@@ -1,5 +1,9 @@
+require("util")
+require("stridx")
+json = require"dkjson"
+
 -- WBRGU
-return {
+local data = {
   ["1021"] = {"RGUWB", "BRGUW"},
   ["103"] = {"UGWRB"},
   ["101111"] = {"BRGUW", "RGUWB", "GUWBR", "UWBRG"},
@@ -19,3 +23,22 @@ return {
   ["34633"] = {"BRGUW", "WBRGU", "RGUWB"},
   ["3573"] = {"BRGUW", "WBRGU"},
 }
+
+local holdings = {}
+for k,v in spairs(data) do
+  local deck = tonumber(k[1])
+  local points = tonumber(k[2])
+  local costs = k:sub(3)
+  for i=1,5 do
+    local holding = {}
+    holding.deck = deck
+    holding.points = points
+    holding.bonus = ("WBRGU")[i]
+    for j=1,#costs do
+      holding[v[j][i]] = tonumber(costs[j])
+    end
+    holdings[#holdings+1] = holding
+  end
+end
+
+return holdings
