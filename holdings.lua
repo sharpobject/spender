@@ -24,20 +24,29 @@ local data = {
   ["3573"] = {"BRGUW", "WBRGU"},
 }
 
+local letter_to_number = {
+  W=1,
+  B=2,
+  R=3,
+  G=4,
+  U=5,
+}
+
 local holdings = {}
 for k,v in spairs(data) do
   local deck = tonumber(k[1])
   local points = tonumber(k[2])
   local costs = k:sub(3)
   for i=1,5 do
-    local holding = {}
+    local holding = {0,0,0,0,0}
     holding.deck = deck
     holding.points = points
-    holding.bonus = ("WBRGU")[i]
+    holding.bonus = i
     for j=1,#costs do
-      holding[v[j][i]] = tonumber(costs[j])
+      holding[letter_to_number[v[j][i]]] = tonumber(costs[j])
     end
     holdings[#holdings+1] = holding
+    --print(json.encode(holding))
   end
 end
 
