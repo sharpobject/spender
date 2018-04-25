@@ -1,5 +1,5 @@
-import("class")
-local json = import("dkjson")
+require("class")
+local json = require("dkjson")
 local holdings = require("holdings")
 local nobles = require("nobles")
 local decks = {}
@@ -10,6 +10,7 @@ for i=1,4 do
   for j=1,n do
     decks[i][j] = j + deck_offsets[i]
   end
+  --print(json.encode(decks[i]))
 end
 
 GameState = class(function(self)
@@ -39,8 +40,8 @@ GameState = class(function(self)
   self.p1 = true
   for i=1,3 do
     self:deal_noble()
-    for i=1,4 do
-      slef:deal_card(i)
+    for j=1,4 do
+      self:deal_card(i)
     end
   end
 end)
@@ -72,6 +73,27 @@ function GameState:deal_card(deck_idx)
     end
   end
 end
+
+function GameState:pretty()
+  local ret = {}
+  ret.community_cards = {}
+  for i=1,90 do
+    if self.community_cards[i] then
+      ret.community_cards[#ret.community_cards+1] = holdings[i]
+    end
+  end
+  ret.nobles = {}
+  for i=1,10 do
+    if self.nobles[i] then
+      ret.nobles[#ret.nobles+1] = nobles[i]
+    end
+  end
+  return ret
+end
+
+math.randomseed(os.time())
+local state = GameState()
+print(json.encode(state:pretty()))
 
 -- 1-90: is card community card?
 -- 91-180: is card in deck?
