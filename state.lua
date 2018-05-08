@@ -201,6 +201,9 @@ function GameState:apply_move(move_id)
     local deal_card = self.community_cards[move.card]
     n_chips = n_chips + self.my_chips[6]
     self.my_n_chips = n_chips
+    if not self.community_cards[move.card] then
+      self.my_n_reserved = self.my_n_reserved - 1
+    end
     self.community_cards[move.card] = false
     self.my_reserved[move.card] = false
     self.deck_cards[move.card] = false
