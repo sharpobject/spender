@@ -25,6 +25,7 @@ local data = {
 }
 
 local letter_to_number = {
+  "W","B","R","G","U",
   W=1,
   B=2,
   R=3,
@@ -48,6 +49,33 @@ for k,v in spairs(data) do
     holdings[#holdings+1] = holding
     --print(json.encode(holding))
   end
+end
+
+sort_colors = {B=1,U=2,G=3,R=4,W=5}
+color_names = {"white", "black", "red", "green", "blue"}
+
+table.sort(holdings, function(a, b)
+  local dog = sort_colors[letter_to_number[a.bonus]] - sort_colors[letter_to_number[b.bonus]]
+  if dog ~= 0 then
+    return dog < 0
+  end
+  dog = a.deck - b.deck
+  if dog ~= 0 then
+    return dog < 0
+  end
+  dog = a.points - b.points
+  return dog < 0
+end)
+
+for k,holding in ipairs(holdings) do
+  print(holding.deck..","..
+        color_names[holding.bonus]..","..
+        holding.points..","..
+        (holding[2]~=0 and holding[2] or "")..","..
+        (holding[1]~=0 and holding[1] or "")..","..
+        (holding[3]~=0 and holding[3] or "")..","..
+        (holding[5]~=0 and holding[5] or "")..","..
+        (holding[4]~=0 and holding[4] or ""))
 end
 
 return holdings
