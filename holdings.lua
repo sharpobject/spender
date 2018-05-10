@@ -66,16 +66,16 @@ table.sort(holdings, function(a, b)
   dog = a.points - b.points
   return dog < 0
 end)
-
+--WUGRB
+local colorsxd = "wbrgu"
 for k,holding in ipairs(holdings) do
-  print(holding.deck..","..
-        color_names[holding.bonus]..","..
-        holding.points..","..
-        (holding[2]~=0 and holding[2] or "")..","..
-        (holding[1]~=0 and holding[1] or "")..","..
-        (holding[3]~=0 and holding[3] or "")..","..
-        (holding[5]~=0 and holding[5] or "")..","..
-        (holding[4]~=0 and holding[4] or ""))
+  print("Card('"..colorsxd[holding.bonus].."', "..
+        holding.points..", "..
+        holding[1]..", "..
+        holding[5]..", "..
+        holding[4]..", "..
+        holding[3]..", "..
+        holding[2].."),")
 end
 
 return holdings
