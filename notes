@@ -1,0 +1,20 @@
+NN input thingy
+90 * 4 inputs for cards (community, deck, my reserve, opp reserve)
+10 inputs for nobles
+25 inputs for bank chips
+25 inputs for my chips
+25 inputs for opp chips
+35 inputs for my bonuses
+35 inputs for opp bonuses
+22 inputs for my score
+22 inputs for opp score
+3 inputs for my n reserved
+3 inputs for opp n reserved
+10 inputs for my n chips
+10 inputs for opp n chips
+1 input for p1 status
+1 input for p2 status
+
+587 total inputs?
+
+moves.lua says there are 1227 moves so let's go with that

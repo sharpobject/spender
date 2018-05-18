@@ -128,7 +128,6 @@ end
 
 for i=1,90 do
   ret[#ret+1] = {type="buy", card=i}
-  --print(json.encode(ret[#ret]))
 end
 
 return ret

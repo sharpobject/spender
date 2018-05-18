@@ -1,4 +1,4 @@
-function class(init)
+return function (init)
   local c,mt = {},{}
   c.__index = c
   mt.__call = function(class_tbl, ...)
