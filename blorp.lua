@@ -5,6 +5,6 @@ require"util"
 json=require"dkjson"
 a = GameState()
 b = GameState(a:as_tensor())
-print(json.encode(a))
-print(json.encode(b))
+c = GameState(a:as_string())
 assert(deepeq(a,b))
+assert(deepeq(a,c))
