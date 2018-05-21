@@ -1,6 +1,6 @@
 require("util")
 require("stridx")
-json = require"dkjson"
+local json = require"dkjson"
 
 -- WBRGU
 local data = {

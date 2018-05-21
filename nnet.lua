@@ -34,7 +34,7 @@ end
 NNet = class(function(self, n_res_blocks)
   self.trunk = nn.Sequential()
   self.trunk:add(conv_block())
-  for i=1,n_res_blocks do
+  for _=1,n_res_blocks do
     self.trunk:add(res_block())
   end
   self.policy = nn.Sequential()

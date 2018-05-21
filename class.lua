@@ -1,7 +1,7 @@
 return function (init)
   local c,mt = {},{}
   c.__index = c
-  mt.__call = function(class_tbl, ...)
+  mt.__call = function(_, ...)
     local obj = {}
     setmetatable(obj,c)
     init(obj,...)

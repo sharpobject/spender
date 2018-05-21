@@ -54,7 +54,7 @@ GameState = class(function(self, tensor)
   self.p1 = true
   for i=1,3 do
     self:deal_noble()
-    for j=1,4 do
+    for _=1,4 do
       self:deal_card(i)
     end
   end
@@ -76,7 +76,6 @@ end
 function GameState:deal_card(deck_idx)
   local deck = decks[deck_idx]
   local n = deck[0]
-  local offset
   for i=1,n do
     local j = math.random(i, n)
     deck[i], deck[j] = deck[j], deck[i]
@@ -91,7 +90,6 @@ end
 function GameState:reserve_from_deck(deck_idx)
   local deck = decks[deck_idx]
   local n = deck[0]
-  local offset
   for i=1,n do
     local j = math.random(i, n)
     deck[i], deck[j] = deck[j], deck[i]
@@ -206,7 +204,7 @@ function GameState:apply_move(move_id, print_stuff)
     local holding = holdings[move.card]
     local n_chips = 0
     for i=1,5 do
-      for j=self.my_bonuses[i]+1,holding[i] do
+      for _=self.my_bonuses[i]+1,holding[i] do
         if self.my_chips[i] > 0 then
           self.my_chips[i] = self.my_chips[i] - 1
           self.bank[i] = self.bank[i] + 1
