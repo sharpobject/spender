@@ -7,17 +7,15 @@ local sqrt = math.sqrt
 local nmoves = #moves
 local EPS = 1e-8
 
-MCTS = class(function(self, game, nnet, args)
-  self.game = game
+MCTS = class(function(self, nnet, nsims, cpuct, alpha)
   self.nnet = nnet
-  self.args = args
-  self.nsims = self.args.nsims
-  self.cpuct = self.args.cpuct
+  self.nsims = nsims
+  self.cpuct = cpuct
+  self.alpha = alpha
   self.Qsa = {}
   self.Nsa = {}
   self.Ns = {}
   self.Ps = {}
-
   self.Es = {}
   self.Vs = {}
 end)
