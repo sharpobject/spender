@@ -1,4 +1,5 @@
 require"state"
+local json = require"dkjson"
 local moves = require"moves"
 local function comp(f, blorp, ...)
   if blorp == nil then return f end
@@ -137,7 +138,7 @@ local function play_game(a, b)
     table.sort(legalmoves)
     local move = policies[b](legalmoves, state)
     state:apply_move(move, false)
-    if i==400 then print("stalemate :(") return end
+    --if i==400 then print("stalemate :(") return end
   end
   times[a][b][1] = times[a][b][1] + state.turn
   times[a][b][2] = times[a][b][2] + 1
@@ -196,7 +197,7 @@ for qq=1,1000 do
     local move = uniformly(legalmoves)
     state:apply_move(move, true)
     print(i, move, state.score, state.opp_score, json.encode(state.my_chips), json.encode(state.opp_chips), state.my_n_chips, state.opp_n_chips)
-    if i==400 then break end
+    --if i==400 then break end
   end
 end
 -- 1-90: is card community card?

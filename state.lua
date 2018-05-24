@@ -119,7 +119,11 @@ function GameState:pretty()
 end
 
 function GameState:list_moves()
+  if self.move_set then
+    return self.move_set, self.only_pass
+  end
   local move_set = {}
+  local only_pass = true
   for idx,move in ipairs(moves) do
     local ok = true
     if move.type == "reserve" then
@@ -165,9 +169,13 @@ function GameState:list_moves()
     end
     if ok then
       move_set[idx] = true
+      if idx ~= 26 then
+        only_pass = false
+      end
     end
   end
-  return move_set
+  self.move_set, self.only_pass = move_set, only_pass
+  return move_set, only_pass
 end
 
 function GameState:apply_move(move_id, print_stuff)
@@ -281,6 +289,17 @@ function GameState:apply_move(move_id, print_stuff)
     elseif my_bonuses > opp_bonuses then
       self.result = -1
     else
+      self.result = 0
+    end
+  end
+
+  -- stalemate?
+  self.move_set = nil
+  local _, only_pass = self:list_moves()
+  if only_pass then
+    local next_state = GameState(self:as_array())
+    _, only_pass = next_state:list_moves()
+    if only_pass then
       self.result = 0
     end
   end
