@@ -302,7 +302,10 @@ function GameState:apply_move(move_id, print_stuff)
     next_state:apply_move(26)
     _, only_pass = next_state:list_moves()
     if only_pass then
-      self.result = 0
+      next_state:apply_move(26)
+      if self.score == next_state.score and self.opp_score == next_state.opp_score then
+        self.result = 0
+      end
     end
   end
 end
