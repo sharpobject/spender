@@ -1,17 +1,21 @@
 local class = require"class"
 require"state"
 require"util"
+require"torch"
+local dist = require"distributions"
 local moves = require"moves"
 local sqrt = math.sqrt
 
 local nmoves = #moves
 local EPS = 1e-8
 
-MCTS = class(function(self, nnet, nsims, cpuct, alpha)
+MCTS = class(function(self, nnet, nsims, cpuct, alpha, epsilon)
   self.nnet = nnet
   self.nsims = nsims
   self.cpuct = cpuct
   self.alpha = alpha
+  self.epsilon = epsilon
+  self.noise_in = torch.Tensor(nmoves)
   self.Qsa = {}
   self.Nsa = {}
   self.Ns = {}
@@ -43,16 +47,16 @@ function MCTS:probs(state, temp)
         bests[nbests] = i
       end
     end
-    local probs = {}
-    for i=1,nmoves do
-      probs[i] = 0
-    end
+    local probs = torch.Tensor(nmoves)
+    --for i=1,nmoves do
+    --  probs[i] = 0
+    --end
     for i=1,nbests do
       probs[bests[i]] = 1/nbests
     end
     return probs
   end
-  local probs = {}
+  local probs = torch.Tensor(nmoves)
   local sum = 0
   for i=1,nmoves do
     probs[i] = (self.Nsa[s][i] or 0)^(1/temp)
@@ -61,11 +65,10 @@ function MCTS:probs(state, temp)
   for i=1,nmoves do
     probs[i] = probs[i] / sum
   end
-  -- TODO: Dirichlet noise goes here.
   return probs
 end
 
-function MCTS:search(state)
+function MCTS:search(state, is_root)
   local s = state:as_string()
   if self.Es[s] == nil then
     self.Es[s] = state.result
@@ -105,23 +108,42 @@ function MCTS:search(state)
   end
   local valids = self.Vs[s]
   local best_score = -1e99
-  local best = -1
+  local bests = {-1}
+  local nbests = 1
+  local epsilon = self.epsilon
+  local noise = nil
+  -- Dirichlet noise
+  if is_root and epsilon > 0 then
+    local noise_in = self.noise_in
+    for i=1,nmoves do
+      noise_in[i] = valids[i] and 0.3 or 0
+    end
+    noise = dist.dir.rnd(noise_in) * epsilon
+  end
   for a=1,nmoves do
     if valids[a] then
       local u
+      local p = self.Ps[s][a]
+      if noise then
+        p = (1-epsilon) * p + epsilon * noise[a]
+      end
       if self.Qsa[s] and self.Qsa[s][a] then
-        u = self.Qsa[s][a] + self.cpuct * self.Ps[s][a] * sqrt(self.Ns[s]) / (1+self.Nsa[s][a])
+        u = self.Qsa[s][a] + self.cpuct * p * sqrt(self.Ns[s]) / (1+self.Nsa[s][a])
       else
-        u = self.cpuct * self.Ps[s][a] * sqrt(self.Ns[s] + EPS)
+        u = self.cpuct * p * sqrt(self.Ns[s] + EPS)
       end
       if u > best_score then
         best_score = u
-        best = a
+        bests = {a}
+        nbests = 1
+      elseif u == best_score then
+        nbests = nbests + 1
+        bests[nbests] = a
       end
     end
   end
 
-  local a = best
+  local a = uniformly(bests)
   local next_state = GameState(s)
   next_state:apply_move(a)
   local v = self:search(next_state)
