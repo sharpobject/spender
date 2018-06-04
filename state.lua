@@ -169,9 +169,7 @@ function GameState:list_moves()
     end
     if ok then
       move_set[idx] = true
-      if idx ~= 26 then
-        only_pass = false
-      end
+      only_pass = only_pass and idx == 31
     end
   end
   self.move_set, self.only_pass = move_set, only_pass
@@ -299,10 +297,10 @@ function GameState:apply_move(move_id, print_stuff)
   if only_pass and not self.sm_check then
     local next_state = GameState(self:as_array())
     next_state.sm_check = true
-    next_state:apply_move(26)
+    next_state:apply_move(31)
     _, only_pass = next_state:list_moves()
     if only_pass then
-      next_state:apply_move(26)
+      next_state:apply_move(31)
       if self.score == next_state.score and self.opp_score == next_state.opp_score then
         self.result = 0
       end
