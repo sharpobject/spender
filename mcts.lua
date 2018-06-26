@@ -9,8 +9,8 @@ local sqrt = math.sqrt
 local nmoves = #moves
 local EPS = 1e-8
 
-MCTS = class(function(self, nnet, nsims, cpuct, alpha, epsilon)
-  self.nnet = nnet
+MCTS = class(function(self, nnet_eval, nsims, cpuct, alpha, epsilon)
+  self.nnet_eval = nnet_eval
   self.nsims = nsims
   self.cpuct = cpuct
   self.alpha = alpha
@@ -73,11 +73,11 @@ function MCTS:search(state, is_root)
   if self.Es[s] == nil then
     self.Es[s] = state.result
   end
-  if state.Es[s] ~= nil then
+  if self.Es[s] ~= nil then
     return -self.Es[s]
   end
   if self.Ps[s] == nil then
-    local ps, v = self.nnet.forward(state:as_tensor())
+    local ps, v = self.nnet_eval(state)
     self.Ps[s] = ps
     local valids = state:list_moves()
     local sum = 0
@@ -116,7 +116,7 @@ function MCTS:search(state, is_root)
   if is_root and epsilon > 0 then
     local noise_in = self.noise_in
     for i=1,nmoves do
-      noise_in[i] = valids[i] and 0.3 or 0
+      noise_in[i] = valids[i] and self.alpha or 0
     end
     noise = dist.dir.rnd(noise_in) * epsilon
   end
