@@ -1,0 +1,15 @@
+local args = {
+  n_steps = 1000,
+  n_eps = 2000,
+  temp_threshold = 25,
+  eval_threshold = 220,
+  eval_games = 400,
+  steps_for_history = 20,
+  c_puct = 1,
+  alpha = 0.3,
+  epsilon = 0.25,
+  minibatch_size = 32,
+  n_minibatches = 1000,
+  momentum = 0.9,
+  l2 = 0.0001,
+}

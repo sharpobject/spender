@@ -18,3 +18,5 @@ NN input thingy
 587 total inputs?
 
 moves.lua says there are 1227 moves so let's go with that
+
+pls use net:training() and net:evaluate() to toggle batchnormalization state
