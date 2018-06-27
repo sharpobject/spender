@@ -43,9 +43,9 @@ local function zero_wild(arr) return arr[6] <= 0 end
 local move_types = {
   {1,1,1,0,0,0},
   {1,1,0,0,0,0},
+  {2,0,0,0,0,0},
   {1,0,0,0,0,0},
   {0,0,0,0,0,0},
-  {2,0,0,0,0,0},
   {1,1,1,-1,0,0},
   {1,1,1,-1,-1,0},
   {1,1,1,-2,0,0},
@@ -75,7 +75,7 @@ for i=1,#ret do
   local move = ret[i]
   move.sum = 0
   move.returns = false
-  if i > 10 and i <= 26 then
+  if i > 10 and i <= 31 then
     move.supermoves = {}
     for j=1,i-1 do
       local ok = true
