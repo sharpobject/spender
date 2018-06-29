@@ -25,9 +25,10 @@ MCTS = class(function(self, nnet_eval, nsims, cpuct, alpha, epsilon)
 end)
 
 function MCTS:probs(state, temp)
+  self.current_states = {}
   temp = temp or 1
   for _=1,self.nsims do
-    self:search(state)
+    self:search(state, true)
   end
   local s = state:as_string()
   if temp == 0 then
@@ -76,7 +77,7 @@ function MCTS:search(state, is_root)
   if self.Es[s] ~= nil then
     return -self.Es[s]
   end
-  if self.Ps[s] == nil then
+  if self.Ps[s] == nil or self.current_states[s] then
     local ps, v = self.nnet_eval(state)
     self.Ps[s] = ps
     local valids = state:list_moves()
@@ -144,9 +145,12 @@ function MCTS:search(state, is_root)
   end
 
   local a = uniformly(bests)
-  local next_state = GameState(s)
+  --print("mcts move "..a)
+  local next_state = GameState(state)
   next_state:apply_move(a)
+  self.current_states[s] = true
   local v = self:search(next_state)
+  self.current_states[s] = false
   if self.Qsa[s] and self.Qsa[s][a] then
     self.Qsa[s][a] = (self.Nsa[s][a] * self.Qsa[s][a] + v) / (self.Nsa[s][a] + 1)
     self.Nsa[s][a] = self.Nsa[s][a] + 1

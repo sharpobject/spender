@@ -28,11 +28,16 @@ GameState = class(function(self, tensor)
   self.my_bonuses = {0,0,0,0,0}
   self.opp_bonuses = {0,0,0,0,0}
   self.turn = 0
-  if type(tensor) == "string" then
+  if type(tensor) == "table" then
+    if getmetatable(tensor) == GameState then
+      self:from_state(tensor)
+      return
+    else
+      self:from_tensor(tensor)
+      return
+    end
+  elseif type(tensor) == "string" then
     self:from_string(tensor)
-    return
-  elseif tensor then
-    self:from_tensor(tensor)
     return
   end
   for i=1,90 do
@@ -173,6 +178,8 @@ function GameState:list_moves()
     end
   end
   self.move_set, self.only_pass = move_set, only_pass
+  --print(only_pass)
+  --print(json.encode(set_to_arr(move_set)))
   return move_set, only_pass
 end
 
@@ -293,16 +300,19 @@ function GameState:apply_move(move_id, print_stuff)
 
   -- stalemate?
   self.move_set = nil
-  local _, only_pass = self:list_moves()
-  if only_pass and not self.sm_check then
-    local next_state = GameState(self:as_array())
-    next_state.sm_check = true
-    next_state:apply_move(31)
-    _, only_pass = next_state:list_moves()
-    if only_pass then
+  if self.my_chips == 10 and self.opp_chips == 10 and not self.result then
+    local _, only_pass = self:list_moves()
+    if only_pass and not self.sm_check then
+      local next_state = GameState(self:as_array())
+      next_state.sm_check = true
       next_state:apply_move(31)
-      if self.score == next_state.score and self.opp_score == next_state.opp_score then
-        self.result = 0
+      _, only_pass = next_state:list_moves()
+      if only_pass then
+        next_state:apply_move(31)
+        if self.score == next_state.score and self.opp_score == next_state.opp_score then
+          --print("STALEMATE MOTHERFUCKER")
+          self.result = 0
+        end
       end
     end
   end
@@ -378,6 +388,35 @@ function GameState:dump_to_tensor(ret)
   idx = idx + 1
   ret[idx] = (not self.p1) and 1 or 0
   assert(idx == 587)
+end
+
+function GameState:from_state(s)
+  for i=1,6 do
+    self.bank[i] = s.bank[i]
+    self.my_chips[i] = s.my_chips[i]
+    self.opp_chips[i] = s.opp_chips[i]
+    self.my_bonuses[i] = s.my_bonuses[i]
+    self.opp_bonuses[i] = s.opp_bonuses[i]
+  end
+  for i=1,90 do
+    self.community_cards[i] = s.community_cards[i]
+    self.deck_cards[i] = s.deck_cards[i]
+    self.my_reserved[i] = s.my_reserved[i]
+    self.opp_reserved[i] = s.opp_reserved[i]
+  end
+  for i=1,10 do
+    self.nobles[i] = s.nobles[i]
+  end
+  self.score = s.score
+  self.opp_score = s.opp_score
+  self.my_n_reserved = s.my_n_reserved
+  self.opp_n_reserved = s.opp_n_reserved
+  self.my_n_chips = s.my_n_chips
+  self.opp_n_chips = s.opp_n_chips
+  self.p1 = s.p1
+  self.turn = s.turn
+  self.move_set = s.move_set
+  self.only_pass = s.only_pass
 end
 
 function GameState:from_string(s)
