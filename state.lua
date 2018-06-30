@@ -124,11 +124,12 @@ function GameState:pretty()
 end
 
 function GameState:list_moves()
-  if self.move_set then
-    return self.move_set, self.only_pass
+  if self.move_list then
+    return self.move_list, self.n_legal
   end
+  local move_list = {}
   local move_set = {}
-  local only_pass = true
+  local n_legal = 0
   for idx,move in ipairs(moves) do
     local ok = true
     if move.type == "reserve" then
@@ -174,13 +175,13 @@ function GameState:list_moves()
     end
     if ok then
       move_set[idx] = true
-      only_pass = only_pass and idx == 31
+      n_legal = n_legal + 1
+      move_list[n_legal] = idx
     end
   end
-  self.move_set, self.only_pass = move_set, only_pass
-  --print(only_pass)
+  self.move_list, self.n_legal = move_list, n_legal
   --print(json.encode(set_to_arr(move_set)))
-  return move_set, only_pass
+  return move_list, n_legal
 end
 
 function GameState:apply_move(move_id, print_stuff)
@@ -299,15 +300,15 @@ function GameState:apply_move(move_id, print_stuff)
   end
 
   -- stalemate?
-  self.move_set = nil
+  self.move_list = nil
   if self.my_chips == 10 and self.opp_chips == 10 and not self.result then
-    local _, only_pass = self:list_moves()
-    if only_pass and not self.sm_check then
+    local move_list, n_legal = self:list_moves()
+    if n_legal == 1 and move_list[1] == 31 and not self.sm_check then
       local next_state = GameState(self:as_array())
       next_state.sm_check = true
       next_state:apply_move(31)
-      _, only_pass = next_state:list_moves()
-      if only_pass then
+      move_list, n_legal = next_state:list_moves()
+      if n_legal == 1 and move_list[1] == 31 then
         next_state:apply_move(31)
         if self.score == next_state.score and self.opp_score == next_state.opp_score then
           --print("STALEMATE MOTHERFUCKER")
@@ -415,8 +416,8 @@ function GameState:from_state(s)
   self.opp_n_chips = s.opp_n_chips
   self.p1 = s.p1
   self.turn = s.turn
-  self.move_set = s.move_set
-  self.only_pass = s.only_pass
+  self.move_list = s.move_list
+  self.n_legal = s.n_legal
 end
 
 function GameState:from_string(s)

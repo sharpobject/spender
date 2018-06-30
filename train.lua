@@ -1,4 +1,4 @@
---jit.off()
+jit.off()
 local profi=require"profi"
 local socket = require"socket"
 print(socket.gettime())
@@ -41,7 +41,7 @@ local function make_examples()
   local n_examples = 0
   local episode_step = 0
   local prev_move = 0
-  while state.result == nil do
+  while state.result == nil and episode_step ~= 10 do
     episode_step = episode_step + 1
     print(episode_step)
     local temp = 1
@@ -63,7 +63,7 @@ local function make_examples()
     prev_move = move
   end
   for i=1,n_examples do
-    local z = state.result
+    local z = state.result or 3
     if i % 2 == 0 then
       z = -z
     end
@@ -82,8 +82,8 @@ for i=1,concurrent_eps do
   eps_so_far = eps_so_far + 1
 end
 
---profi:start()
-
+profi:start()
+if true then
 local ostart = 0
 for qqqqq=1,10 do
   local input = {}
@@ -120,6 +120,9 @@ for qqqqq=1,10 do
   local dt = (socket.gettime() - start) * 1000
   print("took "..dt)
   ostart = start
+end
+else
+  make_examples()
 end
 profi:stop()
 profi:writeReport("profilereport.txt")
