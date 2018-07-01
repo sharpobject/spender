@@ -1,8 +1,12 @@
 jit.off()
+math.randomseed(1)
+require"torch"
+torch.manualSeed(1)
 local profi=require"profi"
 local socket = require"socket"
 print(socket.gettime())
 profi:setGetTimeMethod(socket.gettime)
+local random = math.random
 require"mcts"
 require"nnet"
 require"state"
@@ -22,40 +26,44 @@ local args = {
   n_minibatches = 1000,
   momentum = 0.9,
   l2 = 0.0001,
-  mcts_sims = 100,
+  mcts_sims = 300,
 }
 
 local net = NNet(1)
+local nnet_eval = function(state)
+  local t = state:as_tensor():view(1,587)
+  local s = net:forward(t)
+  return torch.exp(s[1][1]), s[2][1][1]
+end
+nnet_eval = function()
+  return torch.Tensor(1227):fill(0.2), random()
+end
+--nnet_eval = coroutine.yield
 
 local function make_examples()
-  --[[local nnet_eval = function(state)
-    local t = state:as_tensor():view(1,587)
-    local s = net:forward(t)
-    return torch.exp(s[1][1]), s[2][1][1]
-  end--]]
   print "starting  new game!!"
-  local nnet_eval = coroutine.yield
   local mcts = MCTS(nnet_eval, args.mcts_sims, args.cpuct, args.alpha, args.epsilon)
   local state = GameState()
   local examples = {}
   local n_examples = 0
   local episode_step = 0
   local prev_move = 0
-  while state.result == nil and episode_step ~= 10 do
+  while state.result == nil and episode_step ~= 50 do
     episode_step = episode_step + 1
     print(episode_step)
     local temp = 1
     if episode_step >= args.temp_threshold then
       temp = 0
     end
-    local pi = mcts:probs(state)
+    local pi, valids = mcts:probs(state)
     n_examples = n_examples + 1
     examples[n_examples] = {
       state:as_string(),
       torch.totable(pi),
+      valids,
       state.p1,
     }
-    local move = torch.multinomial(pi, 1)[1]
+    local move = valids[torch.multinomial(pi, 1)[1]]
     state:apply_move(move)
     if move == 31 and prev_move == 31 then
       state.result = 0
@@ -83,9 +91,9 @@ for i=1,concurrent_eps do
 end
 
 profi:start()
-if true then
+if false then
 local ostart = 0
-for qqqqq=1,10 do
+for qqqqq=1,50 do
   local input = {}
   local i = 1
   local n_coros = #coros

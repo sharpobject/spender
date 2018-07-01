@@ -130,4 +130,43 @@ for i=1,90 do
   ret[#ret+1] = {type="buy", card=i}
 end
 
+table.sort(ret, function(a,b)
+  if a.type == "chip" and b.type ~= "chip" then return true end
+  if a.type ~= "chip" and b.type == "chip" then return false end
+  if a.card and not b.card then return true end
+  if b.card and not a.card then return false end
+  if a.card ~= b.card then
+    return a.card < b.card
+  end
+  if a.type == "buy" and b.type ~= "buy" then return true end
+  if a.type ~= "buy" and b.type == "buy" then return false end
+  if a.deck ~= b.deck then
+    return a.deck < b.deck
+  end
+  if b.returns and not a.returns then return true end
+  if a.returns and not b.returns then return false end
+  if a.sum ~= b.sum then return a.sum > b.sum end
+  local aps, bps = 0,0
+  for i=1,6 do
+    if a[i] and a[i] > 0 then aps = aps + a[i] end
+    if b[i] and b[i] > 0 then bps = bps + b[i] end
+  end
+  if aps ~= bps then return aps > bps end
+  for i=1,6 do
+    if a[i] ~= b[i] and (a[i] > 1 or b[i] > 1) then
+      return a[i] > b[i]
+    end
+  end
+  for i=1,6 do
+    if a[i] ~= b[i] and (a[i] > 0 or b[i] > 0) then
+      return a[i] > b[i]
+    end
+  end
+  for i=1,6 do
+    if a[i] ~= b[i] then
+      return a[i] < b[i]
+    end
+  end
+end)
+
 return ret

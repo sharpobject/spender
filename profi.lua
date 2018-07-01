@@ -227,6 +227,7 @@ function ProFi:createFuncReport( funcInfo )
 		['title']         = self:getTitleFromFuncInfo( funcInfo );
 		['count'] = 0;
 		['timer']         = 0;
+    currentCalls = 0;
 	}
 	return funcReport
 end
@@ -391,7 +392,10 @@ end
 
 function ProFi:onFunctionCall( funcInfo )
 	local funcReport = ProFi:getFuncReport( funcInfo )
-	funcReport.callTime = getTime()
+  funcReport.currentCalls = funcReport.currentCalls + 1
+  if not funcReport.callTime then
+    funcReport.callTime = getTime()
+  end
 	funcReport.count = funcReport.count + 1
 	if self:shouldInspect( funcInfo ) then
 		self:doInspection( self.inspect, funcReport )
@@ -400,8 +404,10 @@ end
 
 function ProFi:onFunctionReturn( funcInfo )
 	local funcReport = ProFi:getFuncReport( funcInfo )
-	if funcReport.callTime then
+  funcReport.currentCalls = funcReport.currentCalls - 1
+	if funcReport.currentCalls == 0 then
 		funcReport.timer = funcReport.timer + (getTime() - funcReport.callTime)
+    funcReport.callTime = nil
 	end
 end
 

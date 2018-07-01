@@ -3,8 +3,16 @@ local json = require("dkjson")
 local holdings = require("holdings")
 local nobles = require("nobles")
 local moves = require("moves")
+local n_moves = #moves
+local move_masks = require"move_masks"
 local bit_array_to_str = require("bit_array_to_str")
 local immutable_bit_array = require("immutable_bit_array")
+local bit = require"bit"
+local lshift = bit.lshift
+local band = bit.band
+local bor = bit.bor
+require"table.new"
+local tb_new = table.new or function() return {} end
 local decks = {}
 local deck_offsets = {0,40,70,0}
 for i=1,4 do
@@ -17,11 +25,11 @@ for i=1,4 do
 end
 
 GameState = class(function(self, tensor)
-  self.community_cards = {}
-  self.deck_cards = {}
-  self.my_reserved = {}
-  self.opp_reserved = {}
-  self.nobles = {}
+  self.community_cards = tb_new(90,0)
+  self.deck_cards = tb_new(90,0)
+  self.my_reserved = tb_new(90,0)
+  self.opp_reserved = tb_new(90,0)
+  self.nobles = tb_new(10,0)
   self.bank = {4,4,4,4,4,5}
   self.my_chips = {0,0,0,0,0,0}
   self.opp_chips = {0,0,0,0,0,0}
@@ -127,10 +135,12 @@ function GameState:list_moves()
   if self.move_list then
     return self.move_list, self.n_legal
   end
-  local move_list = {}
-  local move_set = {}
+  local move_list = tb_new(100, 0)
   local n_legal = 0
-  for idx,move in ipairs(moves) do
+  local move_list, n_legal = self:list_moves_quickly()
+  local move_set = {}
+  for idx=487,n_moves do
+    local move = moves[idx]
     local ok = true
     if move.type == "reserve" then
       ok = ok and self.my_n_reserved < 3
@@ -181,6 +191,149 @@ function GameState:list_moves()
   end
   self.move_list, self.n_legal = move_list, n_legal
   --print(json.encode(set_to_arr(move_set)))
+  return move_list, n_legal
+end
+
+function GameState:list_moves_quickly(move_list, n_legal)
+  local move_list = move_list or tb_new(100, 0)
+  local n_legal = n_legal or 0
+  local my_n_chips = self.my_n_chips
+  local bank_chips = self.bank
+  local my_chips = self.my_chips
+  local state_mask = 0
+  for i=1,5 do
+    if bank_chips[i] >= 1 then
+      state_mask = bor(state_mask, lshift(1, 2*i - 2))
+    end
+    if bank_chips[i] >= 4 then
+      state_mask = bor(state_mask, lshift(1, 2*i - 1))
+    end
+  end
+  for i=1,6 do
+    if my_chips[i] >= 1 then
+      state_mask = bor(state_mask, lshift(1, 3*i + 7))
+    end
+    if my_chips[i] >= 2 then
+      state_mask = bor(state_mask, lshift(1, 3*i + 8))
+    end
+    if my_chips[i] >= 3 then
+      state_mask = bor(state_mask, lshift(1, 3*i + 9))
+    end
+  end
+  local take_wild = bank_chips[6] > 0
+  local take_colors = ((bank_chips[1] > 0) and 1 or 0) +
+                      ((bank_chips[2] > 0) and 1 or 0) +
+                      ((bank_chips[3] > 0) and 1 or 0) +
+                      ((bank_chips[4] > 0) and 1 or 0) +
+                      ((bank_chips[5] > 0) and 1 or 0)
+  local my_w = my_chips[1]
+  local my_b = my_chips[2]
+  local my_r = my_chips[3]
+  local my_g = my_chips[4]
+  local my_u = my_chips[5]
+  local my_wild = my_chips[6]
+  local return_w = my_w > 0
+  local return_b = my_b > 0
+  local return_r = my_r > 0
+  local return_g = my_g > 0
+  local return_u = my_u > 0
+  if my_n_chips <= 7 and take_colors >= 3 then
+    for i=1,10 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+  end
+  if my_n_chips <= 8 then
+    for i=11,15 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+  end
+  if take_colors == 2 or my_n_chips == 8 then
+    for i=16,25 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+  end
+  if take_colors == 1 or my_n_chips == 9 then
+    for i=26,30 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+  end
+  if n_legal == 0 then
+    n_legal = n_legal + 1; move_list[n_legal] = 31
+  end
+  if my_n_chips == 8 and take_colors >= 3 then
+    for i=32,61 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+  end
+  if my_n_chips == 9 then
+    if take_colors >= 3 then
+      for i=62,121 do
+        local mask = move_masks[i]
+        if band(state_mask, mask) == mask then
+          n_legal = n_legal + 1; move_list[n_legal] = i
+        end
+      end
+    end
+    for i=122,146 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+    if take_colors >= 2 then
+      for i=147,186 do
+        local mask = move_masks[i]
+        if band(state_mask, mask) == mask then
+          n_legal = n_legal + 1; move_list[n_legal] = i
+        end
+      end
+    end
+  end
+  if my_n_chips == 10 then
+    if take_colors >= 3 then
+      for i=187,286 do
+        local mask = move_masks[i]
+        if band(state_mask, mask) == mask then
+          n_legal = n_legal + 1; move_list[n_legal] = i
+        end
+      end
+    end
+    for i=287,361 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+    if take_colors >= 2 then
+      for i=362,461 do
+        local mask = move_masks[i]
+        if band(state_mask, mask) == mask then
+          n_legal = n_legal + 1; move_list[n_legal] = i
+        end
+      end
+    end
+    for i=462,486 do
+      local mask = move_masks[i]
+      if band(state_mask, mask) == mask then
+        n_legal = n_legal + 1; move_list[n_legal] = i
+      end
+    end
+  end
   return move_list, n_legal
 end
 
@@ -304,7 +457,7 @@ function GameState:apply_move(move_id, print_stuff)
   if self.my_chips == 10 and self.opp_chips == 10 and not self.result then
     local move_list, n_legal = self:list_moves()
     if n_legal == 1 and move_list[1] == 31 and not self.sm_check then
-      local next_state = GameState(self:as_array())
+      local next_state = GameState(self)
       next_state.sm_check = true
       next_state:apply_move(31)
       move_list, n_legal = next_state:list_moves()
@@ -326,7 +479,7 @@ function GameState:as_tensor()
 end
 
 function GameState:as_array()
-  local ret = {}
+  local ret = tb_new(587, 0)
   self:dump_to_tensor(ret)
   return ret
 end
