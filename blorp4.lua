@@ -10,4 +10,4 @@ end
 
 mcts = MCTS(nnet_eval, 100, 1, .3, .25)
 blorp = mcts:probs(GameState())
-print(blorp:view(1,1227))
+print(blorp:view(1,-1))
