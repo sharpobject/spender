@@ -140,7 +140,8 @@ local function play_game(a, b)
     state:apply_move(move, false)
     --if i==400 then print("stalemate :(") return end
   end
-  times[a][b][1] = times[a][b][1] + state.turn
+  -- TODO: state.turn doesnt exist
+  times[a][b][1] = times[a][b][1] + i/2
   times[a][b][2] = times[a][b][2] + 1
   if state.result == 1 then
     print(a.." wins!")

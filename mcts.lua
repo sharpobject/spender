@@ -47,7 +47,7 @@ function MCTS:probs(state, temp)
     if node and not node.rootified then
       self:rootify(node)
     end
-    self:search(state, s)
+    self:search(GameState(state), s)
   end
   local valids = node.valids
   local nvalids = node.nvalids
@@ -102,19 +102,24 @@ end
 function MCTS:search_a(state, s, node)
     local ps, v = self.nnet_eval(state)
     local valids, nvalids = state:list_moves()
+    local tab = tb_new(nvalids, 0)
     local sum = 0
     for i=1,nvalids do
-      sum = sum + ps[valids[i]]
-      ps[i] = ps[valids[i]]
+      local element = ps[valids[i]]
+      sum = sum + element
+      tab[i] = element
     end
-    ps = ps:narrow(1, 1, nvalids)
     if sum > 0 then
-      ps:div(sum)
+      for i=1,nvalids do
+        tab[i] = tab[i] / sum
+      end
     else
       print("All valid moves were masked, and yes I did copy this from alpha-zero-general")
-      ps:fill(1/nvalids)
+      for i=1,nvalids do
+        tab[i] = 1/nvalids
+      end
     end
-    node.P = totable(ps, nvalids)
+    node.P = tab
     node.valids = valids
     node.nvalids = nvalids
     node.N = 0
@@ -158,10 +163,9 @@ function MCTS:search_b(state, s, node)
     end
   end
 
-  local next_state = GameState(state)
-  next_state:apply_move(node.valids[best])
+  state:apply_move(node.valids[best])
   node.current_visits = node.current_visits + 1
-  local v = self:search(next_state, next_state:as_string())
+  local v = self:search(state, state:as_string())
   node.current_visits = node.current_visits - 1
   Qi[best] = (Ni[best] * Qi[best] + v) / (Ni[best] + 1)
   Ni[best] = Ni[best] + 1

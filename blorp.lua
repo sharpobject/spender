@@ -8,6 +8,7 @@ b = GameState(a:as_tensor())
 print(a:as_tensor())
 assert(deepeq(a,b))
 c = GameState(a:as_string())
+c:as_string()
 assert(deepeq(a,c))
 
 require"nnet"

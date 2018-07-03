@@ -75,18 +75,6 @@ for i=1,#ret do
   local move = ret[i]
   move.sum = 0
   move.returns = false
-  if i > 10 and i <= 31 then
-    move.supermoves = {}
-    for j=1,i-1 do
-      local ok = true
-      for k=1,5 do
-        ok = ok and ret[j][k] >= move[k]
-      end
-      if ok then
-        move.supermoves[#move.supermoves+1] = j
-      end
-    end
-  end
   for j=1,6 do
     if move[j] < 0 then
       move.returns = true
@@ -110,9 +98,6 @@ for j=1,7 do
     local move = deepcpy(reserve_moves[j])
     move.type = "reserve"
     local idx = #ret+1
-    if j == 2 then
-      move.supermoves = {idx-93}
-    end
     if i <= 90 then
       move.card = i
     else
@@ -120,9 +105,6 @@ for j=1,7 do
     end
     ret[idx] = move
     --print(json.encode(move))
-    if move.supermoves then
-      assert(ret[move.supermoves[1]].card == move.card)
-    end
   end
 end
 
@@ -168,5 +150,27 @@ table.sort(ret, function(a,b)
     end
   end
 end)
+
+
+for i = 10,31 do
+  local move = ret[i]
+  move.supermoves = {}
+  for j=1,i-1 do
+    local ok = true
+    for k=1,5 do
+      ok = ok and ret[j][k] >= move[k]
+    end
+    if ok then
+      move.supermoves[#move.supermoves+1] = j
+    end
+  end
+end
+
+for i = 489,1201,8 do
+  ret[i].supermoves = {i-1}
+end
+ret[1208].supermoves = {1207}
+ret[1215].supermoves = {1214}
+ret[1222].supermoves = {1221}
 
 return ret
