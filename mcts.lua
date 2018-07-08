@@ -6,6 +6,8 @@ local dist = require"distributions"
 local moves = require"moves"
 local sqrt = math.sqrt
 local random = math.random
+local string_sub = string.sub
+local pairs = pairs
 require"table.new"
 local tb_new = table.new or function() return {} end
 
@@ -38,9 +40,42 @@ function MCTS:rootify(node)
   end
 end
 
+function MCTS:trim(s)
+  local prev_s = self.prev_s
+  if not prev_s then return end
+  local changed = {}
+  local news = {}
+  local n = 0
+  for i=1,90 do
+    if string_sub(s,i,i) ~= string_sub(prev_s,i,i) then
+      n = n + 1
+      changed[n] = i
+      news[n] = string_sub(s,i,i)
+    end
+  end
+  -- Trim states that are unreachable because of cards changing locations
+  if n > 0 then
+    for k,v in pairs(self.nodes) do
+      for i=1,n do
+        local new = news[i]
+        local old = string_sub(k,changed[i],changed[i])
+        if new ~= old then
+          if (new == "_") or
+             ((new == "1" or new == "2") and old ~= "_") or
+             (new == "C" and old == "D") then
+            self.nodes[k] = nil
+          end
+        end
+      end
+    end
+  end
+end
+
 function MCTS:probs(state, temp)
   temp = temp or 1
   local s = state:as_string()
+  self:trim(s)
+  self.prev_s = s
   local node
   for _=1,self.nsims do
     node = node or self.nodes[s]
