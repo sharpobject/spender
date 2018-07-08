@@ -536,7 +536,7 @@ function GameState:apply_move(move_id, print_stuff)
       next_state.sm_check = true
       next_state:apply_move(31)
       move_list, n_legal = next_state:list_moves()
-      if n_legal == 1 and move_list[1] == 31 then
+      if (n_legal == 1 and move_list[1] == 31) or move_id == 31 then
         next_state:apply_move(31)
         if self.score == next_state.score and self.opp_score == next_state.opp_score then
           --print("STALEMATE MOTHERFUCKER")
@@ -628,6 +628,9 @@ function GameState:dump_to_tensor(ret)
     ret[idx] = cards[i] == opp_reserve and 1 or 0
   end
   idx = idx + 1
+  for i=idx,idx+9 do
+    ret[i] = 0
+  end
   for i=1,3 do
     if self.nobles[i] then
       ret[idx+self.nobles[i]] = 1
