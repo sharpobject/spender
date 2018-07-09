@@ -529,7 +529,7 @@ function GameState:apply_move(move_id, print_stuff)
 
   -- stalemate?
   self.move_list = nil
-  if self.my_chips == 10 and self.opp_chips == 10 and not self.result then
+  if not self.result then
     local move_list, n_legal = self:list_moves()
     if n_legal == 1 and move_list[1] == 31 and not self.sm_check then
       local next_state = GameState(self)

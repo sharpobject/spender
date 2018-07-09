@@ -63,7 +63,7 @@ function MCTS:trim(s)
           if (new == "_") or
              ((new == "1" or new == "2") and old ~= "_") or
              (new == "C" and old == "D") then
-            self.nodes[k] = "FUCK"
+            self.nodes[k] = nil
           end
         end
       end
@@ -92,20 +92,20 @@ function MCTS:probs(state, temp)
     local best_visit_count = 0
     local nbests = 0
     for i=1,nvalids do
+      local count = Ni[i]
       if count > best_visit_count then
         bests = {}
         nbests = 1
         best_visit_count = count
         bests[nbests] = i
-      end
-      if count >= best_visit_count then
+      elseif count >= best_visit_count then
         nbests = nbests + 1
         bests[nbests] = i
       end
     end
-    local probs = torch.Tensor(nvalids)
+    local probs = torch.Tensor(nvalids):fill(0)
     for i=1,nbests do
-      probs[bests[i]] = 1/nbests
+      probs[bests[i]] = 1--/nbests
     end
     return probs, valids
   elseif temp == 1 then
@@ -116,7 +116,7 @@ function MCTS:probs(state, temp)
       probs[i] = prob
       sum = sum + prob
     end
-    probs:div(sum)
+    --probs:div(sum)
     return probs, valids
   else
     error("I don't actually support temperature other than 1 or 0 thanks")
@@ -162,7 +162,7 @@ function MCTS:search(state, s, idx)
     return -v
   end
   if idx ~= nil and idx <= node.N then
-    print("skipping nn eval for state reachable multiple ways xd")
+    --print("skipping nn eval for state reachable multiple ways xd")
     return node.results[idx]
   end
   local nvalids = node.nvalids
