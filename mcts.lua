@@ -63,7 +63,7 @@ function MCTS:trim(s)
           if (new == "_") or
              ((new == "1" or new == "2") and old ~= "_") or
              (new == "C" and old == "D") then
-            self.nodes[k] = nil
+            self.nodes[k] = "FUCK"
           end
         end
       end
@@ -123,7 +123,7 @@ function MCTS:probs(state, temp)
   end
 end
 
-function MCTS:search(state, s)
+function MCTS:search(state, s, idx)
   if state.result then
     return -state.result
   end
@@ -158,20 +158,28 @@ function MCTS:search(state, s)
     node.valids = valids
     node.nvalids = nvalids
     node.N = 0
+    node.results = {[0]=-v}
     return -v
+  end
+  if idx ~= nil and idx <= node.N then
+    print("skipping nn eval for state reachable multiple ways xd")
+    return node.results[idx]
   end
   local nvalids = node.nvalids
   local P = node.P
   local Qi = node.Qi
   local Ni = node.Ni
+  local Ns = node.Ns
   if not Qi then
     Qi, Ni = tb_new(nvalids, 0), tb_new(nvalids, 0)
+    Ns = {}
     for i=1,nvalids do
       Qi[i] = 0
       Ni[i] = 0
     end
     node.Qi = Qi
     node.Ni = Ni
+    node.Ns = Ns
   end
   local best_score = -1e99
   local best = -1
@@ -197,11 +205,15 @@ function MCTS:search(state, s)
   end
 
   state:apply_move(node.valids[best])
+  local next_s = state:as_string()
+  local next_s_visits = (Ns[next_s] or 0)
   node.current_visits = node.current_visits + 1
-  local v = self:search(state, state:as_string())
+  local v = self:search(state, next_s, next_s_visits)
   node.current_visits = node.current_visits - 1
+  Ns[next_s] = next_s_visits + 1
   Qi[best] = (Ni[best] * Qi[best] + v) / (Ni[best] + 1)
   Ni[best] = Ni[best] + 1
   node.N = node.N + 1
+  node.results[node.N] = -v
   return -v
 end
