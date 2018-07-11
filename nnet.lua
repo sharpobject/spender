@@ -2,8 +2,8 @@ require"nn"
 --require"nninit"
 local class = require"class"
 
-local input_sz = 587
-local hidden_sz = 587
+local input_sz = 588
+local hidden_sz = 588
 local output_sz = 1227
 local value_narrow_sz = 256
 

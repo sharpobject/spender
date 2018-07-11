@@ -20,6 +20,7 @@ local str_sub = string.sub
 require"table.new"
 local tb_new = table.new or function() return {} end
 local tb_concat = table.concat
+local tb_sort = table.sort
 local decks = {}
 local deck_offsets = {0,40,70,-1}
 for i=1,4 do
@@ -32,29 +33,22 @@ for i=1,4 do
 end
 
 GameState = class(function(self, tensor)
-  self.cards = tb_new(122, 0)
+  self.cards = tb_new(123, 0)
   self.nobles = tb_new(3, 0)
   self.bank = {4,4,4,4,4,5}
   self.my_chips = {0,0,0,0,0,0}
   self.opp_chips = {0,0,0,0,0,0}
   self.my_bonuses = {0,0,0,0,0}
   self.opp_bonuses = {0,0,0,0,0}
-  if tensor then
-    if type(tensor) == "table" then
-      if getmetatable(tensor) == GameState then
-        self:from_state(tensor)
-        return
-      else
-        self:from_tensor(tensor)
-        return
-      end
-    elseif type(tensor) == "string" then
-      self:from_string(tensor)
-      return
-    else
-      self:from_tensor(tensor)
-      return
-    end
+  if tensor and tensor.cards then
+    self:from_state(tensor)
+    return
+  elseif type(tensor) == "string" then
+    self:from_string(tensor)
+    return
+  elseif tensor then
+    self:from_tensor(tensor)
+    return
   end
   for i=1,90 do
     -- D = deck
@@ -78,6 +72,8 @@ GameState = class(function(self, tensor)
     end
   end
   self:deal_nobles()
+  tb_sort(self.nobles)
+  self.passed = false
 end)
 
 function GameState:deal_nobles()
@@ -86,7 +82,7 @@ function GameState:deal_nobles()
   for i=1,3 do
     local j = random(i, n)
     deck[i], deck[j] = deck[j], deck[i]
-    self.nobles[i] = deck[j]
+    self.nobles[i] = deck[i]
   end
 end
 
@@ -95,9 +91,11 @@ function GameState:deal_card(deck_idx)
   local n = deck[0]
   for i=1,n do
     local j = random(i, n)
-    deck[i], deck[j] = deck[j], deck[i]
-    if self.cards[deck[i]] == "D" then
-      self.cards[deck[i]] = "C"
+    local oldj = deck[j]
+    local oldi = deck[i]
+    deck[i], deck[j] = oldj, oldi
+    if self.cards[oldj] == "D" then
+      self.cards[oldj] = "C"
       return
     end
   end
@@ -133,77 +131,11 @@ function GameState:pretty()
 end
 
 function GameState:list_moves()
-  local my_reserve, opp_reserve = "1", "2"
-  if not self.p1 then
-    my_reserve, opp_reserve = opp_reserve, my_reserve
-  end
   if self.move_list then
     return self.move_list, self.n_legal
   end
-  local move_list = tb_new(100, 0)
-  local n_legal = 0
   local move_list, n_legal = self:list_moves_exdee()
-  --if true then return move_list, n_legal end
-  local move_set = {}
-  for idx=1e99,n_moves do
-    local move = moves[idx]
-    local ok = true
-    if move.type == "reserve" then
-      ok = ok and self.my_n_reserved < 3
-      if move.card then
-        ok = ok and self.cards[move.card] == "C"
-      else -- reserve from deck
-        local any_in_deck = false
-        for i=1,90 do
-          if holdings[i].deck == move.deck and self.cards[i] == "D" then
-            any_in_deck = true
-          end
-        end
-        ok = ok and any_in_deck
-      end
-    end
-    if ok and (move.type == "chip" or move.type == "reserve") then
-      ok = ok and move.sum + self.my_n_chips <= 10
-      if move.returns then
-        ok = ok and move.sum + self.my_n_chips == 10
-      elseif move.supermoves then
-        for _,supermove in ipairs(move.supermoves) do
-          ok = ok and not move_set[supermove]
-        end
-      end
-      for i=1,6 do
-        ok = ok and (move[i] <= 0 or self.bank[i] >= move[i] * move[i])
-        ok = ok and (self.my_chips[i] + move[i] >= 0)
-      end
-    end
-    if move.type == "buy" then
-      ok = ok and (self.cards[move.card] == "C" or self.cards[move.card] == my_reserve)
-      if ok then
-        local deficit = 0
-        local holding = holdings[move.card]
-        for i=1,5 do
-          if self.my_bonuses[i] + self.my_chips[i] < holding[i] then
-            deficit = deficit + holding[i] - self.my_bonuses[i] - self.my_chips[i]
-          end
-        end
-        ok = ok and deficit <= self.my_chips[6]
-      end
-    end
-    if ok then
-      move_set[idx] = true
-      n_legal = n_legal + 1
-      move_list[n_legal] = idx
-    end
-  end
   self.move_list, self.n_legal = move_list, n_legal
-  --print(json.encode(set_to_arr(move_set)))
-  --local other_list, other_legal = self:list_moves_exdee()
-  --print("My legal = "..n_legal.." Other legal = "..other_legal)
-  --if n_legal ~= other_legal then
-  --  print(json.encode(move_list))
-  --  print(json.encode(other_list))
-  --end
-  --assert(deepeq(other_list, move_list))
   return move_list, n_legal
 end
 
@@ -231,9 +163,9 @@ local mask_parts = {
   0x0, 0x2000000, 0x6000000, 0xe000000, 0xe000000, 0xe000000,
 }
 
-function GameState:list_moves_exdee(move_list, n_legal)
-  local move_list = move_list or tb_new(100, 0)
-  local n_legal = n_legal or 0
+function GameState:list_chip_moves()
+  local move_list = {}
+  local n_legal = 0
   local my_n_chips = self.my_n_chips
   local bank_chips = self.bank
   local my_chips = self.my_chips
@@ -249,7 +181,6 @@ function GameState:list_moves_exdee(move_list, n_legal)
          mask_parts[my_chips[4]+40] +
          mask_parts[my_chips[5]+45] +
          mask_parts[my_chips[6]+50]
-  local take_wild = bank_chips[6] > 0
   local take_colors = ((bank_chips[1] > 0) and 1 or 0) +
                       ((bank_chips[2] > 0) and 1 or 0) +
                       ((bank_chips[3] > 0) and 1 or 0) +
@@ -260,17 +191,6 @@ function GameState:list_moves_exdee(move_list, n_legal)
                    (bank_chips[3] > 3) or
                    (bank_chips[4] > 3) or
                    (bank_chips[5] > 3)
-  local my_w = my_chips[1]
-  local my_b = my_chips[2]
-  local my_r = my_chips[3]
-  local my_g = my_chips[4]
-  local my_u = my_chips[5]
-  local my_wild = my_chips[6]
-  local return_w = my_w > 0
-  local return_b = my_b > 0
-  local return_r = my_r > 0
-  local return_g = my_g > 0
-  local return_u = my_u > 0
   if my_n_chips <= 7 and take_colors >= 3 then
     n_legal = add_chip_moves(state_mask, move_list, n_legal, 1, 10)
   end
@@ -316,6 +236,127 @@ function GameState:list_moves_exdee(move_list, n_legal)
     end
     n_legal = add_chip_moves(state_mask, move_list, n_legal, 462, 486)
   end
+  return move_list, n_legal
+end
+
+local chip_moves_lookup = {}
+local id_table = {}
+
+function GameState:get_chip_id()
+  local my_chips = self.my_chips
+  local my_n_chips = self.my_n_chips
+  local bank = self.bank
+  local bwild = bank[6]
+  bank[6] = 0
+  for i=1,6 do
+    local banki = bank[i]
+    local myi = my_chips[i]
+    local idtbi = "1"
+    if banki == 4 then
+      idtbi = "2"
+    elseif banki > 0 then
+      idtbi = "3"
+    end
+    if my_n_chips >= 8 and myi >= 1 then
+      if banki > 0 then
+        idtbi = "4"
+        if my_n_chips >= 10 and myi >= 3 then
+          idtbi = "5"
+        elseif my_n_chips >= 9 and myi >= 2 then
+          idtbi = "6"
+        end
+      else
+        idtbi = "7"
+        if my_n_chips >= 10 and myi >= 3 then
+          idtbi = "8"
+        elseif my_n_chips >= 9 and my_chips[i] >= 2 then
+          idtbi = "9"
+        end
+      end
+    end
+    id_table[i] = idtbi
+  end
+  bank[6] = bwild
+  return tb_concat(id_table)
+end
+
+do
+  local state = GameState()
+  local my_chips = state.my_chips
+  local opp_chips = state.opp_chips
+  local bank = state.bank
+  local inverted_idx = {}
+  local idx = {}
+  for i=1,90 do
+    state.cards[i] = "_"
+  end
+  for a=0,4 do for b=0,4 do for c=0,4 do for d=0,4 do for e=0,4 do for f=0,5 do
+  if a+b+c+d+e+f <= 10 then
+    for oa=0,4-a do for ob=0,4-b do for oc=0,4-c do for od=0,4-d do for oe=0,4-e do
+      if oa+ob+oc+od+oe <= 10 then
+        state.my_n_chips = a+b+c+d+e+f
+        my_chips[1] = a
+        my_chips[2] = b
+        my_chips[3] = c
+        my_chips[4] = d
+        my_chips[5] = e
+        my_chips[6] = f
+        opp_chips[1] = oa
+        opp_chips[2] = ob
+        opp_chips[3] = oc
+        opp_chips[4] = od
+        opp_chips[5] = oe
+        bank[1] = 4-a-oa
+        bank[2] = 4-b-ob
+        bank[3] = 4-c-oc
+        bank[4] = 4-d-od
+        bank[5] = 4-e-oe
+        bank[6] = 5-f
+        local id = state:get_chip_id()
+        local move_list = state:list_chip_moves()
+        if not idx[id] then
+          idx[id] = move_list
+        end
+      end
+    end end end end end
+  end
+  end end end end end end
+  for k,v in pairs(idx) do
+    local inv_key = json.encode(v)
+    local entry = inverted_idx[inv_key]
+    if entry then
+      entry.n = entry.n + 1
+      entry[entry.n] = k
+    else
+      inverted_idx[inv_key] = {n=1,canonical=v,k}
+      v[0] = #v
+    end
+  end
+  for k,v in pairs(inverted_idx) do
+    local canonical = v.canonical
+    for i=1,v.n do
+      chip_moves_lookup[v[i]] = canonical
+    end
+  end
+end
+
+function GameState:list_moves_exdee()
+  local chip_id = self:get_chip_id()
+  local chip_moves = chip_moves_lookup[chip_id]
+  local n_legal = chip_moves[0]
+  local move_list = tb_new(n_legal + 30, 0)
+  for i=1,n_legal do
+    move_list[i] = chip_moves[i]
+  end
+  local my_n_chips = self.my_n_chips
+  local take_wild = self.bank[6] > 0
+  local my_chips = self.my_chips
+  local my_wild = my_chips[6]
+  local return_w = my_chips[1] > 0
+  local return_b = my_chips[2] > 0
+  local return_r = my_chips[3] > 0
+  local return_g = my_chips[4] > 0
+  local return_u = my_chips[5] > 0
   local idx = 487
   local my_reserve = "1"
   if not self.p1 then
@@ -323,7 +364,6 @@ function GameState:list_moves_exdee(move_list, n_legal)
   end
   local cards = self.cards
   local my_bonuses = self.my_bonuses
-  local take_wild = bank_chips[6] > 0
   local can_reserve = self.my_n_reserved < 3
   for card_idx=1,90 do
     local card = cards[card_idx]
@@ -417,6 +457,7 @@ function GameState:list_moves_exdee(move_list, n_legal)
 end
 
 function GameState:apply_move(move_id, print_stuff)
+  local passed = move_id == 31
   local move = moves[move_id]
   if move.type == "chip" or move.type == "reserve" then
     local n_chips = 0
@@ -489,6 +530,10 @@ function GameState:apply_move(move_id, print_stuff)
       if ok then
         self.score = self.score + 3
         self.nobles[i] = false
+        for j=i,2 do
+          self.nobles[j], self.nobles[j+1] = self.nobles[j+1], self.nobles[j]
+        end
+        passed = false
         if print_stuff then
           print("claimed a noble!")
         end
@@ -505,6 +550,7 @@ function GameState:apply_move(move_id, print_stuff)
   self.my_n_reserved, self.opp_n_reserved = self.opp_n_reserved, self.my_n_reserved
   self.my_n_chips,    self.opp_n_chips    = self.opp_n_chips,    self.my_n_chips
   self.p1 = not self.p1
+  self.move_list = nil
 
   -- game over?
   if (self.score >= 15 or self.opp_score >= 15) and self.p1 then
@@ -528,33 +574,20 @@ function GameState:apply_move(move_id, print_stuff)
   end
 
   -- stalemate?
-  self.move_list = nil
-  if not self.result then
-    local move_list, n_legal = self:list_moves()
-    if n_legal == 1 and move_list[1] == 31 and not self.sm_check then
-      local next_state = GameState(self)
-      next_state.sm_check = true
-      next_state:apply_move(31)
-      move_list, n_legal = next_state:list_moves()
-      if (n_legal == 1 and move_list[1] == 31) or move_id == 31 then
-        next_state:apply_move(31)
-        if self.score == next_state.score and self.opp_score == next_state.opp_score then
-          --print("STALEMATE MOTHERFUCKER")
-          self.result = 0
-        end
-      end
-    end
+  if (not self.result) and passed and self.passed then
+    self.result = 0
   end
+  self.passed = passed
 end
 
 function GameState:as_tensor()
-  local ret = torch.Tensor(587)
+  local ret = torch.Tensor(588)
   self:dump_to_tensor(ret)
   return ret
 end
 
 function GameState:as_array()
-  local ret = tb_new(587, 0)
+  local ret = tb_new(588, 0)
   self:dump_to_tensor(ret)
   return ret
 end
@@ -603,79 +636,155 @@ function GameState:as_string()
   t[120] = opp_n_chips < 10 and ("0"..opp_n_chips) or opp_n_chips
   t[121] = self.my_n_reserved
   t[122] = self.opp_n_reserved
-  return tb_concat(t)
+  t[123] = self.passed and "P" or "N"
+  local ret = tb_concat(t)
+  for i=91,123 do t[i] = nil end
+  return ret
+--  return tb_concat(t)
 end
 
+local ch_to_offset = {C=1,D=2,["1"]=3,["2"]=4}
 function GameState:dump_to_tensor(ret)
-  local idx = 0
-  idx = idx + 1
-  ret[idx] = self.p1 and 1 or 0
-  idx = idx + 1
-  ret[idx] = (not self.p1) and 1 or 0
+  for i=1,588 do
+    ret[i] = 0
+  end
+  if self.p1 then
+    ret[1] = 1
+  else
+    ret[2] = 1
+  end
   local my_reserve, opp_reserve = "1", "2"
   if not self.p1 then
     my_reserve, opp_reserve = opp_reserve, my_reserve
   end
+  ch_to_offset[my_reserve] = 3
+  ch_to_offset[opp_reserve] = 4
   local cards = self.cards
+  local idx = 2
   for i=1,90 do
-    idx = idx + 1
-    ret[idx] = cards[i] == "C" and 1 or 0
-    idx = idx + 1
-    ret[idx] = cards[i] == "D" and 1 or 0
-    idx = idx + 1
-    ret[idx] = cards[i] == my_reserve and 1 or 0
-    idx = idx + 1
-    ret[idx] = cards[i] == opp_reserve and 1 or 0
+    local card = cards[i]
+    if card ~= "_" then
+      ret[idx + ch_to_offset[card]] = 1
+    end
+    idx = idx + 4
   end
   idx = idx + 1
-  for i=idx,idx+9 do
-    ret[i] = 0
-  end
   for i=1,3 do
     if self.nobles[i] then
       ret[idx+self.nobles[i]] = 1
     end
   end
   idx = idx + 9
-  for _,chip_piles in ipairs({self.bank, self.my_chips, self.opp_chips}) do
-    for i=1,5 do
-      for j=1,4 do
-        idx = idx + 1
-        ret[idx] = chip_piles[i] >= j and 1 or 0
-      end
-    end
-    for i=1,5 do
-      idx = idx + 1
-      ret[idx] = chip_piles[6] >= i and 1 or 0
-    end
+  local t = self.bank
+  for i=373,372+t[1] do
+    ret[i] = 1
   end
-  for _,bonus_piles in ipairs({self.my_bonuses, self.opp_bonuses}) do
-    for i=1,5 do
-      for j=1,7 do
-        idx = idx + 1
-        ret[idx] = bonus_piles[i] >= j and 1 or 0
-      end
-    end
+  for i=377,376+t[2] do
+    ret[i] = 1
   end
-  for _, score in ipairs({self.score, self.opp_score}) do
-    for i=1,22 do
-      idx = idx + 1
-      ret[idx] = score >= i and 1 or 0
-    end
+  for i=381,380+t[3] do
+    ret[i] = 1
   end
-  for _, n_reserved in ipairs({self.my_n_reserved, self.opp_n_reserved}) do
-    for i=1,3 do
-      idx = idx + 1
-      ret[idx] = n_reserved >= i and 1 or 0
-    end
+  for i=385,384+t[4] do
+    ret[i] = 1
   end
-  for _, n_chips in ipairs({self.my_n_chips, self.opp_n_chips}) do
-    for i=1,10 do
-      idx = idx + 1
-      ret[idx] = n_chips >= i and 1 or 0
-    end
+  for i=389,388+t[5] do
+    ret[i] = 1
   end
-  assert(idx == 587)
+  for i=393,392+t[6] do
+    ret[i] = 1
+  end
+  t = self.my_chips
+  for i=398,397+t[1] do
+    ret[i] = 1
+  end
+  for i=402,401+t[2] do
+    ret[i] = 1
+  end
+  for i=406,405+t[3] do
+    ret[i] = 1
+  end
+  for i=410,409+t[4] do
+    ret[i] = 1
+  end
+  for i=414,413+t[5] do
+    ret[i] = 1
+  end
+  for i=418,417+t[6] do
+    ret[i] = 1
+  end
+  t = self.opp_chips
+  for i=423,422+t[1] do
+    ret[i] = 1
+  end
+  for i=427,426+t[2] do
+    ret[i] = 1
+  end
+  for i=431,430+t[3] do
+    ret[i] = 1
+  end
+  for i=435,434+t[4] do
+    ret[i] = 1
+  end
+  for i=439,438+t[5] do
+    ret[i] = 1
+  end
+  for i=443,442+t[6] do
+    ret[i] = 1
+  end
+  t = self.my_bonuses
+  for i=448,447+t[1] do
+    ret[i] = 1
+  end
+  for i=455,454+t[2] do
+    ret[i] = 1
+  end
+  for i=462,461+t[3] do
+    ret[i] = 1
+  end
+  for i=469,468+t[4] do
+    ret[i] = 1
+  end
+  for i=476,475+t[5] do
+    ret[i] = 1
+  end
+  t = self.opp_bonuses
+  for i=483,482+t[1] do
+    ret[i] = 1
+  end
+  for i=490,489+t[2] do
+    ret[i] = 1
+  end
+  for i=497,496+t[3] do
+    ret[i] = 1
+  end
+  for i=504,503+t[4] do
+    ret[i] = 1
+  end
+  for i=511,510+t[5] do
+    ret[i] = 1
+  end
+  for i=518,517+self.score do
+    ret[i] = 1
+  end
+  for i=540,539+self.opp_score do
+    ret[i] = 1
+  end
+  for i=562,561+self.my_n_reserved do
+    ret[i] = 1
+  end
+  for i=565,564+self.opp_n_reserved do
+    ret[i] = 1
+  end
+  for i=568,567+self.my_n_chips do
+    ret[i] = 1
+  end
+  for i=578,577+self.opp_n_chips do
+    ret[i] = 1
+  end
+  if self.passed then
+    ret[588] = 1
+  end
 end
 
 function GameState:from_state(s)
@@ -708,6 +817,8 @@ function GameState:from_state(s)
   self.p1 = s.p1
   self.move_list = s.move_list
   self.n_legal = s.n_legal
+  self.result = s.result
+  self.passed = s.passed
 end
 
 function GameState:from_string(s)
@@ -759,6 +870,7 @@ function GameState:from_string(s)
   self.opp_n_chips = str_sub(s,123,124) + 0
   self.my_n_reserved = s[125] + 0
   self.opp_n_reserved = s[126] + 0
+  self.passed = s[127] == "P"
 end
 
 function GameState:from_tensor(t)
@@ -863,6 +975,8 @@ function GameState:from_tensor(t)
       self.opp_n_chips = i
     end
   end
-  assert(idx == 587)
+  idx = idx + 1
+  self.passed = t[idx] == 1
+  assert(idx == 588)
 end
 

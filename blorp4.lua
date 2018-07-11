@@ -3,7 +3,7 @@ require"mcts"
 
 local foo = NNet(20)
 function nnet_eval(state)
-  local t = state:as_tensor():view(1,587)
+  local t = state:as_tensor():view(1,588)
   local s = foo:forward(t)
   return torch.exp(s[1][1]), s[2][1][1]
 end

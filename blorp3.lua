@@ -22,7 +22,7 @@ for batch_size=10,10 do
         target[1][i][j] = 0
       end
     end
-    local input = torch.Tensor(batch_size, 587)
+    local input = torch.Tensor(batch_size, 588)
     dog = input
     local start = socket.gettime()
     for i=1,nr do
@@ -43,7 +43,7 @@ for batch_size=10,10 do
   n:evaluate()
   local game = GameState()
   for i=1,batch_size do
-    local input = torch.Tensor(i,587)
+    local input = torch.Tensor(i,588)
     for j=1,i do
       game:dump_to_tensor(input[j])
     end
@@ -55,7 +55,7 @@ for batch_size=10,10 do
         target[1][j][k] = 0
       end
     end
-    --for j=1,587 do
+    --for j=1,588 do
     --  input[1][j] = dog[i][j]
     --end
 
@@ -64,7 +64,7 @@ for batch_size=10,10 do
     print(i, kld.output*1227, mse.output)
     print("hi"..i,torch.exp(n.output[1][1][1]), n.output[2][1][1])
   end
-  --[[input = GameState():as_tensor():view(1,587)
+  --[[input = GameState():as_tensor():view(1,588)
   blah = n.trunk:forward(input)
   print(torch.exp(n.trunk.output[1][1][1]), n.trunk.output[2][1][1])
   print(torch.exp(blah[1][1][1]))

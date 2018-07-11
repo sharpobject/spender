@@ -14,14 +14,17 @@ local tb_new = table.new or function() return {} end
 local nmoves = #moves
 local EPS = 1e-8
 
+local weakmt = { __mode = 'v' }
+
 MCTS = class(function(self, nnet_eval, nsims, cpuct, alpha, epsilon)
   self.nnet_eval = nnet_eval
   self.nsims = nsims
   self.cpuct = cpuct
-  self.alpha = alpha
   self.epsilon = epsilon
   self.noise_in = torch.Tensor(nmoves)
-  self.nodes = {}
+  self.noise_in:fill(alpha)
+  self.nodes = setmetatable({}, weakmt)
+  self.gamestate = GameState()
 end)
 
 function MCTS:rootify(node)
@@ -30,7 +33,6 @@ function MCTS:rootify(node)
   node.rootified = true
   if epsilon > 0 then
     local noise_in = self.noise_in:narrow(1, 1, nvalids)
-    noise_in:fill(self.alpha)
     local noise = dist.dir.rnd(noise_in):mul(epsilon)
     local P = node.P
     local rest = 1-epsilon
@@ -40,49 +42,18 @@ function MCTS:rootify(node)
   end
 end
 
-function MCTS:trim(s)
-  local prev_s = self.prev_s
-  if not prev_s then return end
-  local changed = {}
-  local news = {}
-  local n = 0
-  for i=1,90 do
-    if string_sub(s,i,i) ~= string_sub(prev_s,i,i) then
-      n = n + 1
-      changed[n] = i
-      news[n] = string_sub(s,i,i)
-    end
-  end
-  -- Trim states that are unreachable because of cards changing locations
-  if n > 0 then
-    for k,v in pairs(self.nodes) do
-      for i=1,n do
-        local new = news[i]
-        local old = string_sub(k,changed[i],changed[i])
-        if new ~= old then
-          if (new == "_") or
-             ((new == "1" or new == "2") and old ~= "_") or
-             (new == "C" and old == "D") then
-            self.nodes[k] = nil
-          end
-        end
-      end
-    end
-  end
-end
-
 function MCTS:probs(state, temp)
   temp = temp or 1
   local s = state:as_string()
-  self:trim(s)
-  self.prev_s = s
-  local node
+  local node = self.nodes[s]
+  local gamestate = self.gamestate
   for _=1,self.nsims do
-    node = node or self.nodes[s]
     if node and not node.rootified then
       self:rootify(node)
     end
-    self:search(GameState(state), s)
+    gamestate:from_state(state)
+    _, node = self:search(gamestate, s)
+    self.root_node = node
   end
   local valids = node.valids
   local nvalids = node.nvalids
@@ -98,7 +69,8 @@ function MCTS:probs(state, temp)
         nbests = 1
         best_visit_count = count
         bests[nbests] = i
-      elseif count >= best_visit_count then
+      end
+      if count >= best_visit_count then
         nbests = nbests + 1
         bests[nbests] = i
       end
@@ -109,12 +81,12 @@ function MCTS:probs(state, temp)
     end
     return probs, valids
   elseif temp == 1 then
-    local probs = torch.Tensor(nvalids)
-    local sum = 0
+    local probs = torch.Tensor(Ni)
+    --local sum = 0
     for i=1,nvalids do
       local prob = Ni[i]
       probs[i] = prob
-      sum = sum + prob
+      --sum = sum + prob
     end
     --probs:div(sum)
     return probs, valids
@@ -159,11 +131,10 @@ function MCTS:search(state, s, idx)
     node.nvalids = nvalids
     node.N = 0
     node.results = {[0]=-v}
-    return -v
+    return -v, node
   end
   if idx ~= nil and idx <= node.N then
-    --print("skipping nn eval for state reachable multiple ways xd")
-    return node.results[idx]
+    return node.results[idx], node
   end
   local nvalids = node.nvalids
   local P = node.P
@@ -180,6 +151,7 @@ function MCTS:search(state, s, idx)
     node.Qi = Qi
     node.Ni = Ni
     node.Ns = Ns
+    node.succ = {}
   end
   local best_score = -1e99
   local best = -1
@@ -208,12 +180,15 @@ function MCTS:search(state, s, idx)
   local next_s = state:as_string()
   local next_s_visits = (Ns[next_s] or 0)
   node.current_visits = node.current_visits + 1
-  local v = self:search(state, next_s, next_s_visits)
+  local v, next_node = self:search(state, next_s, next_s_visits)
   node.current_visits = node.current_visits - 1
   Ns[next_s] = next_s_visits + 1
   Qi[best] = (Ni[best] * Qi[best] + v) / (Ni[best] + 1)
   Ni[best] = Ni[best] + 1
   node.N = node.N + 1
   node.results[node.N] = -v
-  return -v
+  if next_node then
+    node.succ[next_node] = true
+  end
+  return -v, node
 end

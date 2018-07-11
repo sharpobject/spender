@@ -14,5 +14,5 @@ assert(deepeq(a,c))
 require"nnet"
 
 net = NNet(20)
-p,v = net:forward(a:as_tensor():view(1,587))
+p,v = net:forward(a:as_tensor():view(1,588))
 
