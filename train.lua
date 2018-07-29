@@ -1,4 +1,4 @@
---local make_examples = require"make_examples"
+local make_examples = require"make_examples"
 local learn = require"learn"
 local pit = require"pit"
 local json = require"dkjson"
@@ -23,11 +23,10 @@ local config = {
     [601] = 1e-4,
   }
 }
-if true then return pit(config, 1, 0) end
 local best = 0
 local step = 1
 if file_exists("best_step") then
-  local junk = file_contents("best_step")
+  local junk = json.decode(file_contents("best_step"))
   best = junk[1]
   step = junk[2]
 end

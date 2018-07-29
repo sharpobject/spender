@@ -23,6 +23,7 @@ return function(conf, gen, best)
   local alpha = conf.alpha
   local epsilon = conf.epsilon
   local temp_threshold = conf.temp_threshold
+  local n_eps = conf.n_eps
 
   local net
   if gen == 1 then
@@ -91,7 +92,7 @@ return function(conf, gen, best)
 
 
   local cuda_in = torch.Tensor(n_coros, 588):cuda()
-  while #all_examples < args.n_eps do
+  while #all_examples < n_eps do
     local i = 1
     --print("n coros "..n_coros)
     local prev_n_in = #input
@@ -110,7 +111,7 @@ return function(conf, gen, best)
         local res_i = results[i]
         --print(json.encode(results[i]))
         all_examples[#all_examples+1] = results[i]
-        if eps_so_far < args.n_eps then
+        if eps_so_far < n_eps then
           coros[i] = coroutine_create(make_examples)
           eps_so_far = eps_so_far + 1
         else
