@@ -1,3 +1,4 @@
+--jit.off()
 math.randomseed(1)
 require"torch"
 torch.manualSeed(1)
@@ -20,9 +21,9 @@ local json_encode = json.encode
 local print=print
 local args = {
   n_steps = 1000,
-  n_eps = 500,
-  temp_threshold = 30,
-  eval_threshold = 220,
+  n_eps = 2000,
+  temp_threshold = 24,
+  eval_margin = 20,
   eval_games = 400,
   steps_for_history = 20,
   cpuct = 1,
@@ -37,15 +38,25 @@ local args = {
 
 local net = NNet(10)
 net:cuda()
-local nnet_eval = function(state)
-  local t = state:as_tensor():view(1,587)
+--[[local nnet_eval = function(state)
+  local t = state:as_tensor():view(1,588)
   local s = net:forward(t)
   return torch.exp(s[1][1]), s[2][1][1]
 end
+local nn_return_1 = torch.Tensor(1227):fill(0.2)
+for i=1,1227 do
+  nn_return_1[i] = nn_return_1[i] + random() * 0.01
+end
+local nn_return_2 = 0
 nnet_eval = function()
   return torch.Tensor(1227):fill(0.2), random()
 end
-nnet_eval = coroutine.yield
+local junk = {}
+nnet_eval = function(state)
+  state:dump_to_tensor(junk)
+  return nn_return_1,nn_return_2
+end--]]
+local nnet_eval = coroutine.yield
 
 local function make_examples()
   --print "starting  new game!!"
@@ -54,7 +65,6 @@ local function make_examples()
   local examples = {}
   local n_examples = 0
   local episode_step = 0
-  local prev_move = 0
   while state.result == nil do
     episode_step = episode_step + 1
     --print(episode_step)
@@ -71,11 +81,6 @@ local function make_examples()
     }
     local move = valids[torch.multinomial(pi, 1)[1]]
     state:apply_move(move)
-    if move == 31 and prev_move == 31 and state.result == nil then
-      state.result = 0
-      --print("Double pass, giving up")
-    end
-    prev_move = move
   end
   for i=1,n_examples do
     local z = state.result
@@ -104,7 +109,21 @@ for i=1,concurrent_eps do
 end
 local game_in = {}
 local n_coros = #coros
-local cuda_in = torch.Tensor(n_coros, 587):cuda()
+
+
+if false then
+profi:start()
+for i=1,10 do
+  make_examples()
+  print("fuck "..i)
+end
+profi:stop()
+profi:writeReport("report.txt")
+do return end
+end
+
+
+local cuda_in = torch.Tensor(n_coros, 588):cuda()
 while #all_examples < args.n_eps do
   local i = 1
   --print("n coros "..n_coros)
@@ -155,11 +174,13 @@ while #all_examples < args.n_eps do
   output[1] = output[1]:double()
   output[2] = output[2]:double()
   for i=1,n_coros do
-    game_in[i] = {torch.exp(output[1][i]), output[2][i][1]}
+    game_in[i] = {output[1][i], output[2][i][1]}
   end
   local dt = (socket.gettime() - start) * 1000
   print("took "..dt)
   ostart = start
 end
+
+torch.save("net_snapshot_gen0.nn", net, "ascii")
 
 --print(json.encode(all_examples))

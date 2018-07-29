@@ -322,3 +322,11 @@ function union_counters(list_of_counters)
   end
   return ret
 end
+
+function left_pad(str, len, padding)
+  str = tostring(str)
+  while #str < len do
+    str = padding .. str
+  end
+  return str
+end

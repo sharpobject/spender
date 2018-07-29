@@ -8,6 +8,7 @@ local sqrt = math.sqrt
 local random = math.random
 local string_sub = string.sub
 local pairs = pairs
+local exp = math.exp
 require"table.new"
 local tb_new = table.new or function() return {} end
 
@@ -20,18 +21,20 @@ MCTS = class(function(self, nnet_eval, nsims, cpuct, alpha, epsilon)
   self.nnet_eval = nnet_eval
   self.nsims = nsims
   self.cpuct = cpuct
-  self.epsilon = epsilon
-  self.noise_in = torch.Tensor(nmoves)
-  self.noise_in:fill(alpha)
+  self.epsilon = epsilon or 0
+  if self.epsilon > 0 then
+    self.noise_in = torch.Tensor(nmoves)
+    self.noise_in:fill(alpha)
+  end
   self.nodes = setmetatable({}, weakmt)
   self.gamestate = GameState()
 end)
 
 function MCTS:rootify(node)
   local epsilon = self.epsilon
-  local nvalids = node.nvalids
   node.rootified = true
   if epsilon > 0 then
+    local nvalids = node.nvalids
     local noise_in = self.noise_in:narrow(1, 1, nvalids)
     local noise = dist.dir.rnd(noise_in):mul(epsilon)
     local P = node.P
@@ -112,7 +115,7 @@ function MCTS:search(state, s, idx)
     local tab = tb_new(nvalids, 0)
     local sum = 0
     for i=1,nvalids do
-      local element = ps[valids[i]]
+      local element = exp(ps[valids[i]])
       sum = sum + element
       tab[i] = element
     end
