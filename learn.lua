@@ -7,14 +7,14 @@ require"optim"
 local socket = require"socket"
 local json = require"dkjson"
 
-return function(config, gen)
+return function(conf, gen)
   math.randomseed(gen*3 - 1)
   torch.manualSeed(gen*3 - 1)
 
-  local minibatch_size = config.minibatch_size
-  local n_minibatches = config.n_minibatches
+  local minibatch_size = conf.minibatch_size
+  local n_minibatches = conf.n_minibatches
   local needed_examples = n_minibatches * minibatch_size
-  local example_eps = config.example_eps
+  local example_eps = conf.example_eps
 
   local examples = {}
   local nex = 0
@@ -54,12 +54,12 @@ return function(config, gen)
   print("let's learn motherfucker!!!")
   local sgd_config = {
     learningRate = 1e-2,
-    momentum = config.momentum,
+    momentum = conf.momentum,
     dampening = 0,
     nesterov = true,
-    weightDecay = config.l2,
+    weightDecay = conf.l2,
   }
-  for k,v in spairs(config.lr_schedule) do
+  for k,v in spairs(conf.lr_schedule) do
     if k <= gen then
       sgd_config.learningRate = v
     end

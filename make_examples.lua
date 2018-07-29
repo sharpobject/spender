@@ -18,11 +18,11 @@ return function(conf, gen, best)
   math.randomseed(gen*3 - 2)
   torch.manualSeed(gen*3 - 2)
 
-  local mcts_sims = config.mcts_sims
-  local cpuct = config.cpuct
-  local alpha = config.alpha
-  local epsilon = config.epsilon
-  local temp_threshold = config.temp_threshold
+  local mcts_sims = conf.mcts_sims
+  local cpuct = conf.cpuct
+  local alpha = conf.alpha
+  local epsilon = conf.epsilon
+  local temp_threshold = conf.temp_threshold
 
   local net
   if gen == 1 then
