@@ -158,6 +158,6 @@ return function(conf, gen, best)
   end
   examples_out[nex_out+1] = ""
   local sp_filename = "self_play_ep_"..left_pad(gen-1, 4, "0")
-  set_file_contents(sp_filename, table.concat(examples_out, "\n"))
+  set_file(sp_filename, table.concat(examples_out, "\n"))
 
 end

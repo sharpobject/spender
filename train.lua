@@ -32,7 +32,7 @@ if file_exists("best_step") then
   step = junk[2]
 end
 for i=step,config.n_steps do
-  set_file_contents("best_step", json.encode({best, step}))
+  set_file("best_step", json.encode({best, step}))
   make_examples(config, i, best)
   learn(config, i)
   best = pit(config, i, best)
