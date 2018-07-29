@@ -15,8 +15,8 @@ local print = print
 return function(config, gen, inc_gen)
   math.randomseed(gen*3)
   torch.manualSeed(gen*3)
-  local eval_games = config.eval_games
-  local eval_margin = config.eval_margin
+  local pit_games = config.pit_games
+  local pit_margin = config.pit_margin
   local cpuct = config.cpuct
   local mcts_sims = config.mcts_sims
 
@@ -73,11 +73,11 @@ return function(config, gen, inc_gen)
   local n_finished = 0
   local inc_in = {}
   local cha_in = {}
-  for i=1,eval_games,2 do
+  for i=1,pit_games,2 do
     coros[i] = coroutine_create(fight_incumbent_first)
     coros[i+1] = coroutine_create(fight_challenger_first)
   end
-  for i=1,eval_games do
+  for i=1,pit_games do
     results[i] = {}
     inc_in[i], cha_in[i] = {}, {}
     for j=1,588 do
@@ -86,11 +86,11 @@ return function(config, gen, inc_gen)
   end
 
   local score = 0
-  local n_coros = eval_games
-  local inc_cuda_in = torch.Tensor(eval_games, 588):cuda()
-  local cha_cuda_in = torch.Tensor(eval_games, 588):cuda()
+  local n_coros = pit_games
+  local inc_cuda_in = torch.Tensor(pit_games, 588):cuda()
+  local cha_cuda_in = torch.Tensor(pit_games, 588):cuda()
   local net_ins = {incumbent = inc_in, challenger=cha_in}
-  while n_finished < eval_games do
+  while n_finished < pit_games do
     local i = 1
     local inc_n, cha_n = 0, 0
     while i <= n_coros do
@@ -137,29 +137,35 @@ return function(config, gen, inc_gen)
       break
     end
     local start = socket.gettime()
-    inc_cuda_in:copy(torch.Tensor(inc_in))
-    cha_cuda_in:copy(torch.Tensor(cha_in))
-    local output = incumbent:forward(inc_cuda_in)
-    output[1] = output[1]:double()
-    output[2] = output[2]:double()
     local inc_idx = 0
-    for i=1,n_coros do
-      if results[i][2] == "incumbent" then
-        inc_idx = inc_idx + 1
-        game_in[i] = {output[1][inc_idx], output[2][inc_idx][1]}
-        --print("set game_in for "..i)
+    if inc_n > 0 then
+      local this_inc_cuda_in = inc_cuda_in:narrow(1,1,inc_n)
+      this_inc_cuda_in:copy(torch.Tensor(inc_in):narrow(1,1,inc_n))
+      local output = incumbent:forward(this_inc_cuda_in)
+      output[1] = output[1]:double()
+      output[2] = output[2]:double()
+      for i=1,n_coros do
+        if results[i][2] == "incumbent" then
+          inc_idx = inc_idx + 1
+          game_in[i] = {output[1][inc_idx], output[2][inc_idx][1]}
+          --print("set game_in for "..i)
+        end
       end
     end
     assert(inc_idx == inc_n)
-    output = challenger:forward(inc_cuda_in)
-    output[1] = output[1]:double()
-    output[2] = output[2]:double()
     local cha_idx = 0
-    for i=1,n_coros do
-      if results[i][2] == "challenger" then
-        cha_idx = cha_idx + 1
-        game_in[i] = {output[1][cha_idx], output[2][cha_idx][1]}
-        --print("set game_in for "..i)
+    if cha_n > 0 then
+      local this_cha_cuda_in = cha_cuda_in:narrow(1,1,cha_n)
+      this_cha_cuda_in:copy(torch.Tensor(cha_in):narrow(1,1,cha_n))
+      output = challenger:forward(this_cha_cuda_in)
+      output[1] = output[1]:double()
+      output[2] = output[2]:double()
+      for i=1,n_coros do
+        if results[i][2] == "challenger" then
+          cha_idx = cha_idx + 1
+          game_in[i] = {output[1][cha_idx], output[2][cha_idx][1]}
+          --print("set game_in for "..i)
+        end
       end
     end
     assert(cha_idx == cha_n)
@@ -168,7 +174,9 @@ return function(config, gen, inc_gen)
   end
 
   print("final score !! "..score)
-  if score >= eval_margin then
-    return
+  if score >= pit_margin then
+    return gen
+  else
+    return inc_gen
   end
 end
