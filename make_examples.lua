@@ -52,6 +52,11 @@ return function(conf, gen, best)
       if episode_step >= temp_threshold then
         temp = 0
       end
+      if episode_step >= 400 then
+        print("Game too long, trying again")
+        return make_examples()
+      end
+      --print(state:as_string())
       local pi, valids = mcts:probs(state, temp)
       n_examples = n_examples + 1
       examples[n_examples] = {
@@ -98,8 +103,12 @@ return function(conf, gen, best)
     local prev_n_in = #input
     while i <= n_coros do
       local arg = game_in[i] or {}
-      local _, __, ___
-      _, results[i], __, ___ = coroutine_resume(coros[i], arg[1], arg[2])
+      local ok, junk1, junk2
+      ok, results[i], junk1, junk2 = coroutine_resume(coros[i], arg[1], arg[2])
+      if not ok then
+        print(ok, results[i], junk1, junk2)
+        error(results[i])
+      end
       --_, results[i], __, ___ = coroutine.resume(coros[i], torch.Tensor(1227):fill(0.2), random())
       --print(_, results[i], __, ___)
       if coroutine_status(coros[i]) == "suspended" then
@@ -147,7 +156,7 @@ return function(conf, gen, best)
   end
 
   if gen == 1 then
-    torch.save("net_snapshot_gen0.nn", net, "ascii")
+    torch.save("net_snapshot_gen0000.nn", net, "ascii")
   end
   local examples_out = {}
   local nex_out = 0

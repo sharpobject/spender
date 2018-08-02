@@ -50,11 +50,13 @@ function MCTS:probs(state, temp)
   local s = state:as_string()
   local node = self.nodes[s]
   local gamestate = self.gamestate
+  --print(s)
   for _=1,self.nsims do
     if node and not node.rootified then
       self:rootify(node)
     end
     gamestate:from_state(state)
+    --print(s)
     _, node = self:search(gamestate, s)
     self.root_node = node
   end
@@ -109,7 +111,7 @@ function MCTS:search(state, s, idx)
     }
     self.nodes[s] = node
   end
-  if node.P == nil or node.current_visits > 0 then
+  if node.P == nil then
     local ps, v = self.nnet_eval(state)
     local valids, nvalids = state:list_moves()
     local tab = tb_new(nvalids, 0)
@@ -135,6 +137,9 @@ function MCTS:search(state, s, idx)
     node.N = 0
     node.results = {[0]=-v}
     return -v, node
+  end
+  if node.current_visits > 0 then
+    return 0, node
   end
   if idx ~= nil and idx <= node.N then
     return node.results[idx], node

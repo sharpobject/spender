@@ -35,20 +35,26 @@ return function(config, gen, inc_gen)
     local p1_search = MCTS(p1_eval, mcts_sims, cpuct)
     local p2_search = MCTS(p2_eval, mcts_sims, cpuct)
     local state = GameState()
+    local turns = 0
     while state.result == nil do
       local pi, valids = p1_search:probs(state, 0)
       local move = valids[torch.multinomial(pi, 1)[1]]
       state:apply_move(move)
       if state.result then
         assert(state.result == 0)
-        return state.result
+        break
       end
       pi, valids = p2_search:probs(state, 0)
       move = valids[torch.multinomial(pi, 1)[1]]
       state:apply_move(move)
+      turns = turns + 1
+      if turns == 200 then
+        print("Game too long, it's a draw ok")
+        return fight(p1_name, p2_name)
+      end
     end
     if state.result == 0 then
-      return 0
+      return fight(p1_name, p2_name)
     end
     if state.result == 1 then
       return p1_name
@@ -95,10 +101,14 @@ return function(config, gen, inc_gen)
     local inc_n, cha_n = 0, 0
     while i <= n_coros do
       local arg = game_in[i] or {}
-      local _, __
+      local ok, junk1
       --print("arg !!", arg[1], arg[2])
-      _, results[i][1], results[i][2], __ = 
+      ok, results[i][1], results[i][2], junk1 = 
           coroutine_resume(coros[i], arg[1], arg[2])
+      if not ok then
+        print(ok, results[i][1], results[i][2], junk2)
+        error(results[i][1])
+      end
       --print(_, results[i][1], results[i][2], __)
       if coroutine_status(coros[i]) == "suspended" then
         if results[i][2] == "incumbent" then
@@ -118,6 +128,7 @@ return function(config, gen, inc_gen)
           score = score - 1
           print("incumbent wins")
         else
+          error("not supposed to get draws anymore bro")
           assert(results[i][1] == 0)
           print("draw")
         end

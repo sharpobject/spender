@@ -1,3 +1,10 @@
+jit.off()
+local oprint = print
+local io_flush = io.flush
+function print(...)
+  oprint(...)
+  io_flush()
+end
 local make_examples = require"make_examples"
 local learn = require"learn"
 local pit = require"pit"
@@ -16,7 +23,7 @@ local config = {
   momentum = 0.9,       -- For sgd with momentum
   l2 = 1e-4,            -- weight decay/l2 regularization
   pit_games = 400,      -- How many games to play in pit step
-  pit_margin = 20,      -- Required margin of victory for promotion
+  pit_margin = 40,      -- Required margin of victory for promotion
   lr_schedule = {
     1e-2,
     [401] = 1e-3,
@@ -31,8 +38,14 @@ if file_exists("best_step") then
   step = junk[2]
 end
 for i=step,config.n_steps do
-  set_file("best_step", json.encode({best, step}))
-  make_examples(config, i, best)
-  learn(config, i)
+  set_file("best_step", json.encode({best, i}))
+  local examples_filename = "self_play_ep_"..left_pad(i-1, 4, "0")
+  if not file_exists(examples_filename) then
+    make_examples(config, i, best)
+  end
+  local nn_filename = "net_snapshot_gen"..left_pad(i, 4, "0")..".nn"
+  if not file_exists(nn_filename) then
+    learn(config, i)
+  end
   best = pit(config, i, best)
 end
