@@ -1,4 +1,33 @@
 NN input thingy
+90 * 3 inputs for cards (i can buy, opp can buy, still in deck)
+10 inputs for nobles
+6 inputs for my chips (0-4 of colored chips, 0-5 wild)
+6 inputs for opp chips (0-4 of colored chips, 0-5 wild)
+5 inputs for my bonuses (0-7 of each color)
+5 inputs for opp bonuses (0-7 of each color)
+1 inputs for my score (0-22)
+1 inputs for opp score (0-22)
+1 inputs for my n reserved (0-3)
+1 inputs for opp n reserved (0-3)
+1 input for p1 status
+1 input for "opponent just passed"
+5 inputs for "you can return this color" (to prevent synthetic pass)
+
+313 total inputs?
+
+moves.lua says there are 220 moves so let's go with that
+
+pls use net:training() and net:evaluate() to toggle batchnormalization state
+
+The following inputs have been BANISHED for being a linear combination of
+constants and other inputs:
+6 inputs for bank chips (0-4 of colored chips, 0-5 wild)
+1 input for my n chips (0-13?)
+1 input for opp n chips (0-10)
+1 input for p2 status
+
+old stuff:
+NN input thingy
 90 * 4 inputs for cards (community, deck, my reserve, opp reserve)
 10 inputs for nobles
 25 inputs for bank chips

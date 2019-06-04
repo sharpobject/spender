@@ -100,9 +100,12 @@ function MCTS:probs(state, temp)
   end
 end
 
-function MCTS:search(state, s, idx)
+function MCTS:search(state, s, idx, negate)
   if state.result then
-    return -state.result
+    if negate and state.result ~= "stalemate" then
+      return -state.result
+    end
+    return state.result
   end
   local node = self.nodes[s]
   if node == nil then
@@ -135,14 +138,22 @@ function MCTS:search(state, s, idx)
     node.valids = valids
     node.nvalids = nvalids
     node.N = 0
-    node.results = {[0]=-v}
-    return -v, node
+    node.results = {[0]=v}
+    if negate then
+      return -v, node
+    else
+      return v, node
+    end
   end
   if node.current_visits > 0 then
     return 0, node
   end
   if idx ~= nil and idx <= node.N then
-    return node.results[idx], node
+    if negate and node.results[idx] ~= "stalemate" then
+      return -node.results[idx], node
+    else
+      return node.results[idx], node
+    end
   end
   local nvalids = node.nvalids
   local P = node.P
@@ -184,19 +195,28 @@ function MCTS:search(state, s, idx)
     end
   end
 
+  local old_p1 = state.p1
   state:apply_move(node.valids[best])
+  local negate_next = old_p1 ~= state.p1
   local next_s = state:as_string()
   local next_s_visits = (Ns[next_s] or 0)
   node.current_visits = node.current_visits + 1
-  local v, next_node = self:search(state, next_s, next_s_visits)
+  local ret_v, next_node = self:search(state, next_s, next_s_visits, negate_next)
+  local v = ret_v
+  if v == "stalemate" then
+    v = -1
+  end
   node.current_visits = node.current_visits - 1
   Ns[next_s] = next_s_visits + 1
   Qi[best] = (Ni[best] * Qi[best] + v) / (Ni[best] + 1)
   Ni[best] = Ni[best] + 1
   node.N = node.N + 1
-  node.results[node.N] = -v
+  node.results[node.N] = ret_v
   if next_node then
     node.succ[next_node] = true
   end
-  return -v, node
+  if negate and ret_v ~= "stalemate" then
+    return -ret_v, node
+  end
+  return ret_v, node
 end

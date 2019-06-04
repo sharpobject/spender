@@ -2,10 +2,10 @@ require"nn"
 --require"nninit"
 local class = require"class"
 
-local input_sz = 588
-local hidden_sz = 588
-local output_sz = 1227
-local value_narrow_sz = 256
+local input_sz = 313
+local hidden_sz = 384
+local output_sz = 220
+local value_narrow_sz = 192
 
 local function conv_block()
   local s = nn.Sequential()

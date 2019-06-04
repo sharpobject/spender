@@ -96,7 +96,7 @@ return function(conf, gen, best)
   local n_coros = #coros
 
 
-  local cuda_in = torch.Tensor(n_coros, 588):cuda()
+  local cuda_in = torch.Tensor(n_coros, 313):cuda()
   while #all_examples < n_eps do
     local i = 1
     --print("n coros "..n_coros)
@@ -109,7 +109,7 @@ return function(conf, gen, best)
         print(ok, results[i], junk1, junk2)
         error(results[i])
       end
-      --_, results[i], __, ___ = coroutine.resume(coros[i], torch.Tensor(1227):fill(0.2), random())
+      --_, results[i], __, ___ = coroutine.resume(coros[i], torch.Tensor(220):fill(0.2), random())
       --print(_, results[i], __, ___)
       if coroutine_status(coros[i]) == "suspended" then
         results[i]:dump_to_tensor(input[i])

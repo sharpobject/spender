@@ -249,13 +249,13 @@ function deepeq(a,b)
   for k,v in pairs(a) do
     done_k[k] = true
     if not deepeq(a[k],b[k]) then
-      --print("false because key "..k.." has different values "..tostring(a[k]).." and "..tostring(b[k]))
+      print("false because key "..k.." has different values "..tostring(a[k]).." and "..tostring(b[k]))
       return false
     end
   end
   for k,_ in pairs(b) do
     if not done_k[k] then
-      --print("false because key "..k.." is missing from a")
+      print("false because key "..k.." is missing from a")
       return false
     end
   end

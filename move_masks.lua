@@ -8,7 +8,7 @@ local bit = require"bit"
 local lshift = bit.lshift
 local bor = bit.bor
 local masks = {}
-for i=1,486 do
+for i=1,37 do
   local move = moves[i]
   local mask = 0
   for j=1,5 do
@@ -17,17 +17,6 @@ for i=1,486 do
     end
     if move[j] >= 2 then
       mask = bor(mask, lshift(1, 2*j - 1))
-    end
-  end
-  for j=1,6 do
-    if move[j] <= -1 then
-      mask = bor(mask, lshift(1, 3*j + 7))
-    end
-    if move[j] <= -2 then
-      mask = bor(mask, lshift(1, 3*j + 8))
-    end
-    if move[j] <= -3 then
-      mask = bor(mask, lshift(1, 3*j + 9))
     end
   end
   masks[i] = mask

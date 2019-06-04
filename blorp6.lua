@@ -5,7 +5,7 @@ local clock = os.clock
 local net = NNet(20)
 local states = {}
 local batch_size = 128
-local input = torch.Tensor(batch_size,588)
+local input = torch.Tensor(batch_size,313)
 local minibatch = true
 for i=1,batch_size do
   states[i] = GameState()
@@ -23,10 +23,10 @@ local total = 0
 for i=1,10 do
   st = clock()
   if minibatch then
-    p,v = net:forward(input)
+    p,v = unpack(net:forward(input))
   else
     for i=1,32 do
-      p,v = net:forward(input[i])
+      p,v = unpack(net:forward(input[i]))
     end
   end
   et = clock()

@@ -130,27 +130,31 @@ local function play_game(a, b)
   print(a.." vs. "..b)
   while not state.result do
     i = i + 1
-    local legalmoves = set_to_arr(state:list_moves())
-    table.sort(legalmoves)
-    local move = policies[a](legalmoves, state)
-    state:apply_move(move, false)
-    local legalmoves = set_to_arr(state:list_moves())
-    table.sort(legalmoves)
-    local move = policies[b](legalmoves, state)
-    state:apply_move(move, false)
-    --if i==400 then print("stalemate :(") return end
+    while state.p1 do
+      local legalmoves = state:list_moves()
+      table.sort(legalmoves)
+      local move = policies[a](legalmoves, state)
+      state:apply_move(move, false)
+    end
+    while not state.p1 and state.result == nil do
+      local legalmoves = state:list_moves()
+      table.sort(legalmoves)
+      local move = policies[b](legalmoves, state)
+      state:apply_move(move, false)
+    end
+    if i==400 then print("stalemate :(") return end
   end
   -- TODO: state.turn doesnt exist
   times[a][b][1] = times[a][b][1] + i/2
   times[a][b][2] = times[a][b][2] + 1
   if state.result == 1 then
-    print(a.." wins!")
+    print(a.." wins in "..i.." turns!")
     scores[a][b] = scores[a][b] + 1
   elseif state.result == -1 then
-    print(b.." wins!")
+    print(b.." wins in "..i.." turns!")
     scores[b][a] = scores[b][a] + 1
   elseif state.result == 0 then
-    print("draw")
+    print("draw in "..i.." turns!")
     scores[a][b] = scores[a][b] + .5
     scores[b][a] = scores[b][a] + .5
   else
@@ -158,7 +162,7 @@ local function play_game(a, b)
   end
 end
 
-for i=1,100 do
+for i=1,10 do
   for a,_ in pairs(policies) do
     play_game(a, "Antoinette")
     --play_game("Antoinette", a)
@@ -180,11 +184,11 @@ print(json.encode(times))
 if true then return end
 
 math.randomseed(5)
-for qq=1,1000 do
+for qq=1,1 do
   print("starting a new game!")
   local state = GameState()
   --print(json.encode(state:pretty()))
-  local legalmoves = set_to_arr(state:list_moves())
+  local legalmoves = state:list_moves()
   table.sort(legalmoves)
   --print(json.encode(legalmoves))
   for _,move in ipairs(legalmoves) do
@@ -193,8 +197,8 @@ for qq=1,1000 do
   local i = 0
   while not state.result do
     i = i + 1
-    local legalmoves = set_to_arr(state:list_moves())
-    table.sort(legalmoves)
+    local legalmoves = state:list_moves()
+    print(json.encode(legalmoves))
     local move = uniformly(legalmoves)
     state:apply_move(move, true)
     print(i, move, state.score, state.opp_score, json.encode(state.my_chips), json.encode(state.opp_chips), state.my_n_chips, state.opp_n_chips)

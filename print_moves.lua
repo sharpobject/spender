@@ -19,15 +19,15 @@ local function bin(mask)
 end
 local function format_move(move, mask)
   local ret = "hi"
-  if move.type == "chip" or move.type == "reserve" then
+  if move.type == "chip" then
     ret = "Take "
     for i=1,6 do
       for j=1,move[i] do
         ret = ret .. colors[i]
       end
     end
-    if move.returns then
-      ret = ret .. " Return "
+    if move.sum < 0 then
+      ret = "Return "
       for i=1,6 do
         for j=-1,move[i],-1 do
           ret = ret .. colors[i]
@@ -38,12 +38,10 @@ local function format_move(move, mask)
     ret = "Buy "..move.card
   end
   if move.type == "reserve" then
-    local extra = " "..ret
-    if extra == " Take " then extra = "" end
     if move.card then
-      ret = "Reserve "..move.card .. extra
+      ret = "Reserve "..move.card
     else
-      ret = "Reserve deck "..move.deck ..extra
+      ret = "Reserve deck "..move.deck
     end
   end
   if ret == "Take " then ret = "Pass" end
@@ -52,6 +50,6 @@ local function format_move(move, mask)
   end
   return ret
 end
-for i=1,1227 do
+for i=1,220 do
   print(i.." "..format_move(moves[i], masks[i]))
 end

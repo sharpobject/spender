@@ -46,19 +46,7 @@ local move_types = {
   {2,0,0,0,0,0},
   {1,0,0,0,0,0},
   {0,0,0,0,0,0},
-  {1,1,1,-1,0,0},
-  {1,1,1,-1,-1,0},
-  {1,1,1,-2,0,0},
-  {2,-1,0,0,0,0},
-  {1,1,-1,0,0,0},
-  {1,1,1,-1,-1,-1},
-  {1,1,1,-2,-1,0},
-  {1,1,1,-3,0,0},
-  {2,-1,-1,0,0,0},
-  {2,-2,0,0,0,0},
-  {1,1,-1,-1,0,0},
-  {1,1,-2,0,0,0},
-  {1,-1,0,0,0,0},
+  {-1,0,0,0,0,0},
 }
 
 local ret = {}
@@ -74,38 +62,23 @@ end
 for i=1,#ret do
   local move = ret[i]
   move.sum = 0
-  move.returns = false
   for j=1,6 do
-    if move[j] < 0 then
-      move.returns = true
-    end
     move.sum = move.sum + move[j]
   end
   move.type = "chip"
 end
 
-local reserve_moves = {
-  {0,0,0,0,0,1,sum=1,returns=false},
-  {0,0,0,0,0,0,sum=0,returns=false},
-  {-1,0,0,0,0,1,sum=0,returns=true},
-  {0,-1,0,0,0,1,sum=0,returns=true},
-  {0,0,-1,0,0,1,sum=0,returns=true},
-  {0,0,0,-1,0,1,sum=0,returns=true},
-  {0,0,0,0,-1,1,sum=0,returns=true},
-}
-for j=1,7 do
-  for i=1,93 do
-    local move = deepcpy(reserve_moves[j])
-    move.type = "reserve"
-    local idx = #ret+1
-    if i <= 90 then
-      move.card = i
-    else
-      move.deck = i-90
-    end
-    ret[idx] = move
-    --print(json.encode(move))
+for i=1,93 do
+  local move = {}
+  move.type = "reserve"
+  local idx = #ret+1
+  if i <= 90 then
+    move.card = i
+  else
+    move.deck = i-90
   end
+  ret[idx] = move
+  --print(json.encode(move))
 end
 
 for i=1,90 do
@@ -125,8 +98,6 @@ table.sort(ret, function(a,b)
   if a.deck ~= b.deck then
     return a.deck < b.deck
   end
-  if b.returns and not a.returns then return true end
-  if a.returns and not b.returns then return false end
   if a.sum ~= b.sum then return a.sum > b.sum end
   local aps, bps = 0,0
   for i=1,6 do
@@ -151,26 +122,8 @@ table.sort(ret, function(a,b)
   end
 end)
 
-
-for i = 10,31 do
-  local move = ret[i]
-  move.supermoves = {}
-  for j=1,i-1 do
-    local ok = true
-    for k=1,5 do
-      ok = ok and ret[j][k] >= move[k]
-    end
-    if ok then
-      move.supermoves[#move.supermoves+1] = j
-    end
-  end
+for i=1,#ret do
+  print(i, json.encode(ret[i]))
 end
-
-for i = 489,1201,8 do
-  ret[i].supermoves = {i-1}
-end
-ret[1208].supermoves = {1207}
-ret[1215].supermoves = {1214}
-ret[1222].supermoves = {1221}
 
 return ret

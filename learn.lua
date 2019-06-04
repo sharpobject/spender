@@ -68,14 +68,14 @@ return function(conf, gen)
   local c = nn.ParallelCriterion(false)
   local kld = nn.DistKLDivCriterion()
   local mse = nn.MSECriterion()
-  c:add(kld, 1227)
+  c:add(kld, 220)
   c:add(mse)
   c:cuda()
 
 
-  local input = torch.Tensor(minibatch_size, 588):cuda()
+  local input = torch.Tensor(minibatch_size, 313):cuda()
   local output = {
-    torch.Tensor(minibatch_size, 1227):cuda(),
+    torch.Tensor(minibatch_size, 220):cuda(),
     torch.Tensor(minibatch_size, 1):cuda()
   }
   --net:double()
@@ -89,11 +89,11 @@ return function(conf, gen)
   local outvtab = {}
   for i=1,minibatch_size do
     intab[i] = {}
-    for j=1,588 do
+    for j=1,313 do
       intab[i][j] = 0
     end
     outptab[i] = {}
-    for j=1,1227 do
+    for j=1,220 do
       outptab[i][j] = 0
     end
     outvtab[i] = {0}
@@ -112,7 +112,7 @@ return function(conf, gen)
       for j=1,#ps do
         total = total + ps[j]
       end
-      for j=1,1227 do
+      for j=1,220 do
         outptab[i][j] = 0
       end
       for j=1,#ps do
@@ -138,7 +138,7 @@ return function(conf, gen)
     local loss = c:forward(outputs, batch_labels)
     local dloss_doutputs = c:backward(outputs, batch_labels)
     net:backward(batch_inputs, dloss_doutputs)
-    print("loss !! "..loss.." "..mse.output.." "..kld.output*1227)
+    print("loss !! "..loss.." "..mse.output.." "..kld.output*220)
     return loss, gradParams
   end
 

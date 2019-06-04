@@ -86,15 +86,15 @@ return function(config, gen, inc_gen)
   for i=1,pit_games do
     results[i] = {}
     inc_in[i], cha_in[i] = {}, {}
-    for j=1,588 do
+    for j=1,313 do
       inc_in[i][j], cha_in[i][j] = 0, 0
     end
   end
 
   local score = 0
   local n_coros = pit_games
-  local inc_cuda_in = torch.Tensor(pit_games, 588):cuda()
-  local cha_cuda_in = torch.Tensor(pit_games, 588):cuda()
+  local inc_cuda_in = torch.Tensor(pit_games, 313):cuda()
+  local cha_cuda_in = torch.Tensor(pit_games, 313):cuda()
   local net_ins = {incumbent = inc_in, challenger=cha_in}
   while n_finished < pit_games do
     local i = 1
